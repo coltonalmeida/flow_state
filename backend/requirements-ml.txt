@@ -1,0 +1,8 @@
+# Training / evaluation dependencies for flowstate.ml (not installed in the deploy image).
+# Install CPU-only torch:  pip install -r requirements.txt -r requirements-ml.txt --extra-index-url https://download.pytorch.org/whl/cpu
+numpy>=1.26
+scipy>=1.11
+scikit-learn>=1.4
+gymnasium>=0.29
+stable-baselines3>=2.3
+torch>=2.2
