@@ -43,7 +43,7 @@ def _artifact(cid: str, directory: Path) -> tuple[bool, str | None, dict[str, An
         man = json.loads(man_path.read_text(encoding="utf-8"))
     except ValueError:
         return False, "unreadable model manifest", {}
-    if hashlib.sha256(f.read_bytes()).hexdigest() != man.get("sha256"):
+    if hashlib.sha256(f.read_bytes()).hexdigest() != (man.get("sha256") or man.get("artifact_sha256")):
         return False, "model file does not match its manifest", man
     missing = [m for m in needs if importlib.util.find_spec(m) is None]
     if missing:

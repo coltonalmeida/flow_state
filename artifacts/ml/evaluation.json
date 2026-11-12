@@ -34,13 +34,13 @@
    ]
   },
   "note": "simulation only: demand is a seeded model, not calibrated to Toronto counts (docs/TORONTO_DEMAND_STRATEGY.md)",
-  "regated_at": "2026-11-12T18:46:50",
+  "regated_at": "2026-11-12T18:48:41",
   "provenance": {
    "models": {
-    "ml_forecast": null,
+    "ml_forecast": "698aa4dc666dea1067950d79a17d9f20a1cd733843b970581f4711e2dee6d183",
     "rl_ppo": "55eef64e12b942ce172617dae9ef9cc6bff6c39f5dbca59d93605cf183bbcebb"
    },
-   "commit": "3cba014"
+   "commit": "0ddded5"
   }
  },
  "gate": {

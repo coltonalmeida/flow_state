@@ -56,3 +56,10 @@ def test_api_lists_controllers():
     assert doc["default_controller"] == "queue_responsive"
     assert {"fixed_time", "queue_responsive", "ml_forecast", "rl_ppo"} <= set(_by_id(doc))
     assert all(c["status"] != "verified" or c["gate"]["status"] == "verified" for c in doc["controllers"] if c["kind"] == "ml")
+
+
+def test_committed_models_are_recognised():
+    """The repository's own model files must match their manifests (both manifest formats), or the UI silently falls back."""
+    c = _by_id(registry.controllers())
+    for cid in ("ml_forecast", "rl_ppo"):
+        assert c[cid]["note"] != "model file does not match its manifest", cid

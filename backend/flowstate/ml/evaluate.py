@@ -190,7 +190,8 @@ def provenance(directory: Path | None = None) -> dict[str, Any]:
         out["commit"] = None
     for name, man in (("ml_forecast", d / "forecaster" / "MODEL_MANIFEST.json"), ("rl_ppo", d / "rl" / "RL_MANIFEST.json")):
         try:
-            out["models"][name] = json.loads(man.read_text(encoding="utf-8")).get("sha256")
+            m = json.loads(man.read_text(encoding="utf-8"))
+            out["models"][name] = m.get("sha256") or m.get("artifact_sha256")
         except (OSError, ValueError):
             out["models"][name] = None
     return out
