@@ -6,7 +6,10 @@ the maximum; the phase sequence is the program's.
 
 import pytest
 
-from flowstate.ml.policies import ForecastPolicy, RandomTiming
+import numpy as np
+
+from flowstate.ml import rl_env
+from flowstate.ml.policies import ForecastPolicy, LearnedPolicy, RandomTiming
 from flowstate.ml.topology import build_topology
 from flowstate.replay.priority import EmergencyPriority
 from helpers import make_engine, run_until
@@ -69,10 +72,22 @@ def _check_contract(mon, topo, check_greens=True):
                 assert idx == (runs[k - 1][0] + 1) % n, f"{tid}: phase {runs[k - 1][0]} -> {idx}"
 
 
-@pytest.mark.parametrize("arm", ["random", "heuristic", "forecast"])
+def _random_weights(seed=0, hidden=16):
+    rng = np.random.default_rng(seed)
+    w = {}
+    for head, n_out in (("pi", rl_env.N_ACTIONS), ("v", 1)):
+        for i, (a, b) in zip((0, 2, 4), ((rl_env.OBS_DIM, hidden), (hidden, hidden), (hidden, n_out))):
+            w[f"{head}.{i}.weight"] = rng.normal(0, 1.0, (b, a)).astype(np.float32)
+            w[f"{head}.{i}.bias"] = rng.normal(0, 1.0, b).astype(np.float32)
+    return w
+
+
+@pytest.mark.parametrize("arm", ["random", "heuristic", "forecast", "learned", "teacher"])
 def test_safety_contract_holds_on_rush_hour(arm):
     pol = {"random": lambda: RandomTiming(seed=11), "heuristic": lambda: ForecastPolicy(),
-           "forecast": lambda: ForecastPolicy(forecaster=StubForecaster())}[arm]()
+           "forecast": lambda: ForecastPolicy(forecaster=StubForecaster()),
+           "learned": lambda: LearnedPolicy(_random_weights(), mode="sample", seed=3, record=True),  # arbitrary weights: the mask and actuator must hold
+           "teacher": lambda: LearnedPolicy(mode="teacher", eps=0.2, seed=3, record=True)}[arm]()
     mon = _drive("rush_hour", {"duration": 5}, [pol], until=300.0)
     topo = pol.topo
     _check_contract(mon, topo)
@@ -80,6 +95,11 @@ def test_safety_contract_holds_on_rush_hour(arm):
     assert s["greensEnded"] + s["extensions"] > 0, f"{arm} policy did nothing: {s}"
     if arm == "forecast":
         assert pol.decisions > 0
+    if arm in ("learned", "teacher"):
+        tr = pol.trajectory()
+        assert tr["obs"].shape[1:] == (len(topo.tls_ids), rl_env.OBS_DIM) and np.isfinite(tr["obs"]).all()
+        assert tr["mask"][np.arange(len(tr["act"]))[:, None], np.arange(len(topo.tls_ids))[None, :], tr["act"]].all(), "an invalid action was chosen"
+        assert pol.act.summary()["refused"] == 0, "the mask let through an action the actuator refused"
 
 
 def test_forecast_policy_only_touches_retimable_greens_beside_emergency_priority():
@@ -111,14 +131,23 @@ def test_forecast_policy_only_touches_retimable_greens_beside_emergency_priority
         assert phase in pol.topo.signals[tid].green_phases, f"{tid}: ML {name} on phase {phase} ({pol.topo.signals[tid].phases[phase].role})"
 
 
-@pytest.mark.xfail(strict=True, reason="pre-existing on main: replay/priority.py EmergencyPriority treats a pedestrian-clearance phase that still shows vehicle "
-                                       "greens as a conflicting green and cuts it (e.g. n3_7 clearance 14 s -> 10.25 s); replay/heuristic.py does the same")
 def test_emergency_priority_never_shortens_clearances():
     from flowstate.api.service import NETWORKS_DIR
 
     topo = build_topology(NETWORKS_DIR / "district.net.xml")
     mon = _drive("ambulance", {"duration": 5, "calls": 2}, [EmergencyPriority()], seed=3100)
     _check_contract(mon, topo, check_greens=False)  # emergency priority legitimately re-times greens
+
+
+def test_queue_responsive_never_shortens_clearances():
+    from flowstate.api.service import NETWORKS_DIR
+    from flowstate.replay.heuristic import QueueResponsive
+
+    topo = build_topology(NETWORKS_DIR / "district.net.xml")
+    pol = QueueResponsive()
+    mon = _drive("rush_hour", {"duration": 5}, [pol], until=300.0)
+    _check_contract(mon, topo, check_greens=False)  # its 10 s minimum green differs from the plan's per-type minimum
+    assert pol.gap_outs + pol.switches + pol.extensions > 0
 
 
 def test_actuator_leaves_transit_priority_phases_alone():

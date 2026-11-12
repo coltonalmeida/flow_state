@@ -3,6 +3,7 @@
     python -m flowstate.ml.cli topology
     python -m flowstate.ml.cli dataset  [--seeds N] [--workers W]     # data/ml/district_dataset.npz (+ dataset_manifest.json)
     python -m flowstate.ml.cli train    [--max-iter N]                # artifacts/ml/forecaster/
+    python -m flowstate.ml.cli train-rl [--iters N] [--episodes N] [--workers W]   # artifacts/ml/rl/
     python -m flowstate.ml.cli evaluate [--seeds N] [--workers W] [--arms a,b] [--split test|val]
 
 ``--seeds N`` uses the first N seeds of each split (smoke runs); without it the full split ranges are used.
@@ -35,6 +36,15 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--split", default="test", choices=("test", "val"))
     e.add_argument("--scenarios", default=None)
     e.add_argument("--out", default=None)
+    r = sub.add_parser("train-rl")
+    r.add_argument("--iters", type=int, default=30)
+    r.add_argument("--episodes", type=int, default=14)
+    r.add_argument("--workers", type=int, default=14)
+    r.add_argument("--bc-episodes", type=int, default=28)
+    r.add_argument("--val-every", type=int, default=5)
+    r.add_argument("--val-seeds", type=int, default=4)
+    r.add_argument("--seed", type=int, default=1)
+    r.add_argument("--out", default="")
     a = ap.parse_args(argv)
 
     if a.cmd == "topology":
@@ -57,6 +67,13 @@ def main(argv: list[str] | None = None) -> int:
 
         meta = train(Path(a.dataset) if a.dataset else data_dir() / "district_dataset.npz", Path(a.out) if a.out else model_dir() / "forecaster", max_iter=a.max_iter)
         print(json.dumps({k: meta[k] for k in ("rows", "chosen", "test", "inference_ms_per_decision", "train_wall_s") if k in meta}, indent=1))
+        return 0
+    if a.cmd == "train-rl":
+        from .train_rl import RLConfig, train as train_rl
+
+        man = train_rl(RLConfig(seed=a.seed, iters=a.iters, episodes=a.episodes, workers=a.workers, bc_episodes=a.bc_episodes, val_every=a.val_every,
+                                val_seeds=tuple(range(2000, 2000 + a.val_seeds)), out_dir=a.out))
+        print(json.dumps({k: man[k] for k in ("selected_iter", "validation", "train_wall_s")}, indent=1))
         return 0
     if a.cmd == "evaluate":
         from .evaluate import run, table

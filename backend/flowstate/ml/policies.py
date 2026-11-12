@@ -111,6 +111,13 @@ class GreenActuator:
         mgr.T.trafficlight.setPhaseDuration(tid, remaining + grant)
         return True
 
+    def can_extend(self, mgr: SignalManager, tid: str, t: float, window: float) -> bool:
+        """An extension would be accepted now: the green is ours, not ended, within ``window`` s of its end and below the maximum."""
+        if not self.controllable(mgr, tid) or self._ended.get(tid) == mgr.tls[tid].phase_start:
+            return False
+        remaining = self.remaining(mgr, tid)
+        return remaining <= window and self.topo.signals[tid].max_green - (self.elapsed(mgr, tid, t) + remaining) >= 0.5
+
     def summary(self) -> dict[str, Any]:
         return {"greensEnded": self.ended, "extensions": self.extended, "extendedSeconds": round(self.extended_s, 1), "refused": self.refused}
 
@@ -294,3 +301,97 @@ class ForecastPolicy(_TopologyPolicy):
         if self.forecaster is not None:
             out |= {"decisions": self.decisions, "decisionsChangedByForecast": self.changed, "beta": self.beta, "bound": self.bound, "spill": self.spill}
         return out
+
+
+class LearnedPolicy(_TopologyPolicy):
+    """The trained per-junction policy (``ml/train_rl.py``): one shared network picks hold / end / extend for every signal every 5 s.
+
+    Every action goes through :class:`GreenActuator` and is drawn only from the actions the actuator says are valid, so the
+    safety contract at the top of this module holds for any weights. Modes: ``greedy`` (deployment), ``sample`` (training
+    rollouts), ``teacher`` (the queue rule at 5 s decisions; behaviour-cloning data). With ``record`` the trajectory is kept.
+    """
+
+    id = "rl_ppo"
+
+    def __init__(self, weights: dict[str, np.ndarray] | None = None, mode: str = "greedy", seed: int = 0, eps: float = 0.0, record: bool = False) -> None:
+        super().__init__()
+        if mode != "teacher" and weights is None:
+            raise ValueError("a learned policy needs weights")
+        self.weights, self.mode, self.eps, self.record = weights, mode, eps, record
+        self.rng = np.random.default_rng(seed)
+        self.traj: dict[str, list[np.ndarray]] = {k: [] for k in ("obs", "mask", "act", "logp", "val", "teacher", "queue")}
+        self.counts = [0, 0, 0]
+        self.meta: dict[str, Any] = {}
+
+    @classmethod
+    def load(cls, directory: Any, net_path: Any = None) -> "LearnedPolicy":
+        """Load ``policy.npz`` after checking its manifest (hash, observation layout, feature definition, network)."""
+        import hashlib
+        import json
+        from pathlib import Path
+
+        from .features import feature_hash
+        from .forecast import ModelArtifactError
+        from .rl_env import OBS_DIM, OBS_VERSION
+
+        d = Path(directory)
+        man_path, w_path = d / "RL_MANIFEST.json", d / "policy.npz"
+        if not man_path.exists() or not w_path.exists():
+            raise ModelArtifactError(f"no trained policy in {d} (run: python -m flowstate.ml.cli train-rl)")
+        man = json.loads(man_path.read_text(encoding="utf-8"))
+        if hashlib.sha256(w_path.read_bytes()).hexdigest() != man.get("sha256"):
+            raise ModelArtifactError("policy.npz does not match its manifest")
+        if man.get("obs_dim") != OBS_DIM or man.get("obs_version") != OBS_VERSION or man.get("feature_hash") != feature_hash():
+            raise ModelArtifactError("the policy was trained on a different observation or feature definition")
+        if net_path is not None and man.get("network_id") != build_topology(net_path).network_id:
+            raise ModelArtifactError(f"the policy was trained on network {man.get('network_id')}, not this one")
+        with np.load(w_path) as z:
+            pol = cls({k: z[k] for k in z.files})
+        pol.meta = man
+        return pol
+
+    def step(self, mgr: SignalManager, t: float) -> None:
+        self._sample(mgr, t)
+
+    def on_sample(self, mgr: SignalManager, t: float) -> None:
+        from . import rl_env as R
+
+        assert self.topo is not None and self.tracker is not None and self.act is not None
+        o = R.observe(self.topo, self.tracker, self.act, mgr, t)
+        mask = o["mask"]
+        n = len(mask)
+        logp, val = np.zeros(n, dtype=np.float32), np.zeros(n, dtype=np.float32)
+        if self.mode == "teacher":
+            action = o["teacher"].copy()
+        else:
+            logits, val = R.forward(self.weights, o["obs"])  # type: ignore[arg-type]
+            lp = R.masked_log_probs(logits, mask)
+            if self.mode == "sample":
+                u = self.rng.random((n, 1))
+                action = np.minimum((np.cumsum(np.exp(lp), axis=1) < u).sum(axis=1), R.N_ACTIONS - 1)
+                action = np.where(mask[np.arange(n), action], action, lp.argmax(axis=1))
+            else:
+                action = lp.argmax(axis=1)
+            logp = lp[np.arange(n), action].astype(np.float32)
+        if self.eps > 0:  # exploration around the teacher: a random valid action
+            for j in np.nonzero(self.rng.random(n) < self.eps)[0]:
+                action[j] = self.rng.choice(np.nonzero(mask[j])[0])
+        for j, tid in enumerate(self.topo.tls_ids):
+            a = int(action[j])
+            self.counts[a] += 1
+            if a == R.END:
+                self.act.end_green(mgr, tid, t)
+            elif a == R.EXTEND:
+                self.act.extend(mgr, tid, t, SAMPLE_S)
+        if self.record:
+            for k, v in (("obs", o["obs"]), ("mask", mask), ("act", action.astype(np.int64)), ("logp", logp), ("val", val.astype(np.float32)),
+                         ("teacher", o["teacher"]), ("queue", o["queue"])):
+                self.traj[k].append(v)
+
+    def trajectory(self) -> dict[str, np.ndarray]:
+        return {k: np.stack(v) for k, v in self.traj.items()} if self.traj["obs"] else {}
+
+    def summary(self) -> dict[str, Any]:
+        return {"rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)" if self.mode != "teacher"
+                else "queue rule at 5 s decisions (teacher)", "decisions": sum(self.counts), "holds": self.counts[0], "ends": self.counts[1],
+                "extends": self.counts[2], **(self.act.summary() if self.act else {})}

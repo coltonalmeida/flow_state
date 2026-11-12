@@ -65,15 +65,17 @@ def make_policies(arm: str, seed: int, net_path: Path, directory: Path | None = 
     if arm == "random_timing":
         return [RandomTiming(seed)]
     if arm == "rl_ppo":
-        from .policies import LearnedPolicy  # type: ignore[attr-defined]  # Phase 2
+        from .policies import LearnedPolicy
 
         return [EmergencyPriority(), LearnedPolicy.load((directory or model_dir()) / "rl", net_path)]
     raise ValueError(f"unknown arm {arm!r} (known: {', '.join(ARMS)})")
 
 
 def run_episode(arm: str, scenario_id: str, seed: int, *, record: bool = False, params: dict[str, Any] | None = None,
-                directory: Path | None = None) -> dict[str, Any]:
-    """Run one episode. With ``record`` the result carries ``X`` (samples x approaches x features) and ``t``."""
+                directory: Path | None = None, policies: list[Any] | None = None) -> dict[str, Any]:
+    """Run one episode. With ``record`` the result carries ``X`` (samples x approaches x features) and ``t``.
+
+    ``policies`` replaces the arm's signal policies (training rollouts pass their own policy object); ``arm`` is then only a label."""
     from ..api.service import NETWORKS_DIR, WORK_DIR
     from ..scenarios.catalog import create
     from ..sim.engine import Engine, RunConfig
@@ -84,7 +86,8 @@ def run_episode(arm: str, scenario_id: str, seed: int, *, record: bool = False, 
     eng = Engine(sc, RunConfig(scenario_id, sc.params, seed, "fixed", label=label), NETWORKS_DIR, WORK_DIR / label)
     eng.start()
     try:
-        policies = make_policies(arm, seed, eng.net_path, directory)
+        if policies is None:
+            policies = make_policies(arm, seed, eng.net_path, directory)
         rec = RecorderPolicy() if record else None
         eng.signals.policies.extend(policies + ([rec] if rec else []))
         while not eng.finished:
