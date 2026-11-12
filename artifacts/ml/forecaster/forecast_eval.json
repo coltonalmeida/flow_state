@@ -1,0 +1,189 @@
+{
+ "kind": "HistGradientBoostingRegressor x2 (30 s, 60 s)",
+ "network_id": "district:6e3dde6db239fdbc",
+ "features": [
+  "queue",
+  "count",
+  "moving",
+  "mean_wait",
+  "down_occ",
+  "is_green",
+  "in_transition",
+  "elapsed",
+  "to_max_green",
+  "up_count",
+  "up_halting",
+  "up_released",
+  "q_lag10",
+  "q_lag20",
+  "q_lag30",
+  "count_lag30",
+  "capacity",
+  "is_entry",
+  "stage_demand_other"
+ ],
+ "chosen": {
+  "p30": {
+   "learning_rate": 0.1,
+   "max_leaf_nodes": 63,
+   "iterations": 300
+  },
+  "p60": {
+   "learning_rate": 0.1,
+   "max_leaf_nodes": 63,
+   "iterations": 300
+  }
+ },
+ "validation_mae": {
+  "p30:lr=0.05,leaves=31": 0.362,
+  "p30:lr=0.1,leaves=31": 0.3523,
+  "p30:lr=0.1,leaves=63": 0.3425,
+  "p60:lr=0.05,leaves=31": 0.3797,
+  "p60:lr=0.1,leaves=31": 0.3737,
+  "p60:lr=0.1,leaves=63": 0.3668
+ },
+ "rows": {
+  "train": 4665600,
+  "val": 829440,
+  "test": 1150920
+ },
+ "approaches": 72,
+ "train_wall_s": 387.9,
+ "test": {
+  "p30": {
+   "model": {
+    "mae": 0.347,
+    "rmse": 0.666,
+    "r2": 0.472,
+    "spill_precision": 0.756,
+    "spill_recall": 0.35,
+    "spill_f1": 0.478
+   },
+   "ridge": {
+    "mae": 0.446,
+    "rmse": 0.811,
+    "r2": 0.216,
+    "spill_precision": 1.0,
+    "spill_recall": 0.001,
+    "spill_f1": 0.003
+   },
+   "persistence": {
+    "mae": 0.514,
+    "rmse": 1.18,
+    "r2": -0.659,
+    "spill_precision": 0.129,
+    "spill_recall": 0.124,
+    "spill_f1": 0.126
+   },
+   "linear_trend": {
+    "mae": 0.746,
+    "rmse": 1.796,
+    "r2": -2.845,
+    "spill_precision": 0.074,
+    "spill_recall": 0.241,
+    "spill_f1": 0.114
+   },
+   "approach_mean": {
+    "mae": 0.483,
+    "rmse": 0.895,
+    "r2": 0.045,
+    "spill_precision": 0.0,
+    "spill_recall": 0.0,
+    "spill_f1": 0.0
+   },
+   "improvement_vs_persistence_mae_pct": 32.5
+  },
+  "p60": {
+   "model": {
+    "mae": 0.378,
+    "rmse": 0.721,
+    "r2": 0.398,
+    "spill_precision": 0.755,
+    "spill_recall": 0.198,
+    "spill_f1": 0.314
+   },
+   "ridge": {
+    "mae": 0.421,
+    "rmse": 0.782,
+    "r2": 0.291,
+    "spill_precision": 0.823,
+    "spill_recall": 0.043,
+    "spill_f1": 0.082
+   },
+   "persistence": {
+    "mae": 0.448,
+    "rmse": 1.085,
+    "r2": -0.366,
+    "spill_precision": 0.238,
+    "spill_recall": 0.222,
+    "spill_f1": 0.23
+   },
+   "linear_trend": {
+    "mae": 0.932,
+    "rmse": 2.426,
+    "r2": -5.823,
+    "spill_precision": 0.072,
+    "spill_recall": 0.303,
+    "spill_f1": 0.116
+   },
+   "approach_mean": {
+    "mae": 0.487,
+    "rmse": 0.907,
+    "r2": 0.047,
+    "spill_precision": 0.0,
+    "spill_recall": 0.0,
+    "spill_f1": 0.0
+   },
+   "improvement_vs_persistence_mae_pct": 15.6
+  },
+  "heldout_scenario_p30": {
+   "scenario": "stadium",
+   "rows": 217740,
+   "model": {
+    "mae": 0.374,
+    "rmse": 0.843,
+    "r2": 0.552,
+    "spill_precision": 0.782,
+    "spill_recall": 0.458,
+    "spill_f1": 0.578
+   },
+   "persistence": {
+    "mae": 0.563,
+    "rmse": 1.541,
+    "r2": -0.497,
+    "spill_precision": 0.15,
+    "spill_recall": 0.142,
+    "spill_f1": 0.146
+   }
+  }
+ },
+ "inference_ms_per_decision": {
+  "mean": 18.725,
+  "p95": 22.817
+ },
+ "flat_vs_sklearn_max_abs_diff": 1.7763568394002505e-14,
+ "permutation_importance_p30": {
+  "queue": 0.0814,
+  "count": 0.1153,
+  "moving": 0.0552,
+  "mean_wait": 0.1464,
+  "down_occ": 0.0207,
+  "is_green": 0.0156,
+  "in_transition": 0.1044,
+  "elapsed": 0.0692,
+  "to_max_green": 0.0727,
+  "up_count": 0.0566,
+  "up_halting": 0.0016,
+  "up_released": 0.0193,
+  "q_lag10": 0.0325,
+  "q_lag20": 0.0138,
+  "q_lag30": 0.013,
+  "count_lag30": 0.056,
+  "capacity": 0.1049,
+  "is_entry": 0.0368,
+  "stage_demand_other": 0.0179
+ },
+ "heldout_scenario": "stadium",
+ "split": "by episode (disjoint seed ranges); the held-out scenario, if any, appears only in test",
+ "trained_at": "2026-11-12T10:38:04"
+}

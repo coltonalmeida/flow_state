@@ -1,0 +1,90 @@
+{
+ "schema": "flowstate.calibration/1",
+ "method": "Mondrian signed-residual quantiles on validation rows",
+ "level": 0.9,
+ "pred_occupancy_edges": [
+  0.0,
+  0.1,
+  0.25,
+  0.5
+ ],
+ "fitted_on": "validation split (never used for the test numbers)",
+ "rows_val": 829440,
+ "model_sha256": "698aa4dc666dea1067950d79a17d9f20a1cd733843b970581f4711e2dee6d183",
+ "horizons": {
+  "30": {
+   "pooled": {
+    "lo": -0.6988230991518674,
+    "hi": 0.9677684584613833
+   },
+   "bins": [
+    {
+     "n": 790088,
+     "lo": -0.5913795826233585,
+     "hi": 0.903874078365494,
+     "pooled_fallback": false
+    },
+    {
+     "n": 29593,
+     "lo": -1.6557443453518357,
+     "hi": 2.38122442518516,
+     "pooled_fallback": false
+    },
+    {
+     "n": 7894,
+     "lo": -2.7030220652950483,
+     "hi": 3.1301038552241294,
+     "pooled_fallback": false
+    },
+    {
+     "n": 1865,
+     "lo": -3.939233898156008,
+     "hi": 2.950602182507078,
+     "pooled_fallback": false
+    }
+   ],
+   "alert": {
+    "tau": 0.35,
+    "val_f1": 0.515,
+    "tuned_on": "validation split"
+   }
+  },
+  "60": {
+   "pooled": {
+    "lo": -0.6649602540812066,
+    "hi": 1.1996135772867373
+   },
+   "bins": [
+    {
+     "n": 791908,
+     "lo": -0.5867293891142058,
+     "hi": 0.9298516592451276,
+     "pooled_fallback": false
+    },
+    {
+     "n": 30141,
+     "lo": -1.5088599453548412,
+     "hi": 2.829183876759891,
+     "pooled_fallback": false
+    },
+    {
+     "n": 6388,
+     "lo": -2.3877432456279934,
+     "hi": 3.7110081840894393,
+     "pooled_fallback": false
+    },
+    {
+     "n": 1003,
+     "lo": -3.6918036552745765,
+     "hi": 3.4674434116828627,
+     "pooled_fallback": false
+    }
+   ],
+   "alert": {
+    "tau": 0.3,
+    "val_f1": 0.411,
+    "tuned_on": "validation split"
+   }
+  }
+ }
+}
