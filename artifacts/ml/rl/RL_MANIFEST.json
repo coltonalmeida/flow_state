@@ -1,0 +1,111 @@
+{
+ "kind": "shared per-junction PPO policy (hold / end / extend, masked)",
+ "sha256": "55eef64e12b942ce172617dae9ef9cc6bff6c39f5dbca59d93605cf183bbcebb",
+ "obs_dim": 26,
+ "obs_version": 1,
+ "feature_hash": "bd4110a31b7160f4",
+ "network_id": "district:6e3dde6db239fdbc",
+ "config": {
+  "seed": 1,
+  "iters": 60,
+  "episodes": 14,
+  "workers": 14,
+  "bc_episodes": 28,
+  "bc_epochs": 30,
+  "bc_eps": 0.1,
+  "hidden": 64,
+  "gamma": 0.98,
+  "lam": 0.95,
+  "lr": 0.0003,
+  "epochs": 4,
+  "minibatch": 4096,
+  "clip": 0.2,
+  "ent_coef": 0.005,
+  "vf_coef": 0.5,
+  "blend": 0.5,
+  "reward_scale": 0.1,
+  "val_every": 5,
+  "val_seeds": [
+   2000,
+   2001,
+   2002,
+   2003
+  ],
+  "out_dir": ""
+ },
+ "selected_iter": 25,
+ "completed_iters": 31,
+ "partial_run": "training was stopped by the host at iteration 31 of 60 (low system memory); policy.npz is the best validation checkpoint up to iteration 30. This manifest was written afterwards from training_log.jsonl.",
+ "validation": {
+  "selected": {
+   "mean_wait_s": 20.2993,
+   "mean_time_loss_s": 72.7368,
+   "throughput_vph": 1527.6,
+   "teleports": 0.0,
+   "score": 1.9288
+  },
+  "teacher": {
+   "stage": "validation",
+   "tag": "teacher",
+   "mean_wait_s": 22.1551,
+   "mean_time_loss_s": 77.7778,
+   "throughput_vph": 1504.3,
+   "teleports": 0.15,
+   "score": 2.0838,
+   "wall_s": 212
+  },
+  "baselines": {
+   "fixed_time": {
+    "mean_wait_s": 25.31,
+    "mean_time_loss_s": 87.975,
+    "throughput_vph": 1423.0,
+    "teleports": 0.15
+   },
+   "queue_responsive": {
+    "mean_wait_s": 21.085,
+    "mean_time_loss_s": 75.291,
+    "throughput_vph": 1515.2,
+    "teleports": 0.0
+   },
+   "safe_heuristic": {
+    "mean_wait_s": 21.265,
+    "mean_time_loss_s": 75.955,
+    "throughput_vph": 1504.4,
+    "teleports": 0.0
+   }
+  },
+  "episodes": 20,
+  "seeds": [
+   2000,
+   2001,
+   2002,
+   2003
+  ],
+  "scenarios": [
+   "rush_hour",
+   "construction",
+   "accident",
+   "weather",
+   "transit"
+  ]
+ },
+ "seed_pools": {
+  "train": [
+   1000,
+   1199
+  ],
+  "selection": [
+   2000,
+   2001,
+   2002,
+   2003
+  ],
+  "test": [
+   3000,
+   3079
+  ]
+ },
+ "train_wall_s": 2529,
+ "built_at": "2026-11-12T17:37:49",
+ "note": "simulation only; verified status is decided by ml.cli evaluate on the test seeds, not here"
+}
