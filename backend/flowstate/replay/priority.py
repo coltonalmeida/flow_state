@@ -64,7 +64,7 @@ class EmergencyPriority(SignalPolicy):
                 self._ext[tid] = self._ext.get(tid, 0.0) + grant
                 self.extended_s += grant
                 T.trafficlight.setPhaseDuration(tid, remaining + grant)
-            elif state in "rR" and ("G" in info.state or "g" in info.state) and self._cut.get(tid) != info.phase:
+            elif state in "rR" and info.phase in info.retimable and self._cut.get(tid) != info.phase:
                 # a conflicting green is running: let it end once it has served its minimum
                 elapsed = t - info.phase_start
                 target = max(0.0, MIN_GREEN_S - elapsed)

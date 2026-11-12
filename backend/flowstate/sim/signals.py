@@ -711,6 +711,15 @@ class TlsInfo:
     state: str = ""
     hold_until: float = 0.0
     extended: float = 0.0  # seconds of TSP extension granted in the current phase
+    retimable: set[int] = field(default_factory=set)  # phases a policy may end early: vehicle greens, never clearance / amber / left / all-red
+
+
+def retimable_phases(names: Sequence[str], states: Sequence[str], crossing: Collection[int] = ()) -> set[int]:
+    """Phase indices whose duration a control policy may shorten: the walk / green intervals. A pedestrian-clearance phase still shows
+    vehicle greens but its length is a safety minimum (flashing don't-walk), as are amber, all-red and the short protected-left phase."""
+    known = {v: k for k, v in PHASE_NAMES.items() if k in (GREEN, CLEAR, YELLOW, LEFT, LEFT_YELLOW_ROLE, ALL_RED)} | {"green": GREEN}
+    roles = [known[n] for n in names] if len(names) == len(states) and all(n in known for n in names) else phase_roles(states, crossing)
+    return {i for i, (r, st) in enumerate(zip(roles, states)) if r == GREEN and any(c in "Gg" for k, c in enumerate(st) if k not in crossing)}
 
 
 class SignalPolicy:
@@ -745,6 +754,10 @@ class SignalManager:
                         info.crossing_links.add(idx)
             if self.mode == "actuated":
                 T.trafficlight.setProgram(tid, "actuated")
+            prog = T.trafficlight.getProgram(tid)
+            for logic in T.trafficlight.getAllProgramLogics(tid):
+                if logic.programID == prog:
+                    info.retimable = retimable_phases([ph.name for ph in logic.phases], [ph.state for ph in logic.phases], info.crossing_links)
             self.tls[tid] = info
 
     # -- phase bookkeeping -------------------------------------------------

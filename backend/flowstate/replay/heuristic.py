@@ -56,8 +56,8 @@ class QueueResponsive(SignalPolicy):
         now = T.simulation.getTime()
         for tid, info in mgr.tls.items():
             state = info.state
-            if not state or not any(c in "Gg" for c in state):
-                continue  # amber / all-red / clearance: never touched
+            if not state or info.phase not in info.retimable:
+                continue  # amber / all-red / pedestrian clearance / protected left: never touched
             green_q = red_q = 0.0
             green_n = 0
             seen: set[str] = set()
