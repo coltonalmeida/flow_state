@@ -12,8 +12,15 @@ Arms (same network, same scenario, same seed, therefore the same demand and even
 * ``random_timing``     random safe green lengths (dataset generation only).
 
 Measurement: waiting time and time loss are averaged over *every* motor vehicle that departed (completed trips and vehicles
-still on the road at the end), so a controller is not flattered by trips it leaves unfinished. ``mean_wait_s`` is SUMO's
-accumulated waiting time, which SUMO keeps over a sliding 100 s window; ``mean_time_loss_s`` has no such cap.
+still on the road at the end), so a controller is not flattered by trips it leaves unfinished. ``mean_wait_s`` is the whole time a
+vehicle stood still (SUMO's waiting definition, every standstill spell summed); ``mean_wait_window_s`` is SUMO's own accumulated
+waiting time, which only covers a sliding 100 s window and is kept for comparison with the app's figures. Vehicles that never got
+onto the network are in no average, and the demand model itself generates fewer trips when the network is congested, so a
+controller that jams the district would otherwise be scored on less traffic. Those trips are reported separately: ``unserved`` =
+trips the demand model held back because of spillback (``throttled_trips``) + trips it gave up on at full gateways
+(``refused_trips``) + vehicles asked for but not inserted by the end (``never_inserted``: still queued outside the network, or
+dropped by SUMO after waiting 180 s); and ``mean_depart_delay_s`` (how long the inserted ones waited
+to get in). The publication gate checks both.
 """
 
 from __future__ import annotations
@@ -94,25 +101,33 @@ def run_episode(arm: str, scenario_id: str, seed: int, *, record: bool = False, 
             eng.step()
         res = eng.results()
         m = eng.metrics
-        wait = loss = 0.0
+        wait = loss = window = delay = 0.0
         n = done = 0
         for mode in MOTOR:
             s = m.modes.get(mode)
             if s:
                 n += s.trips
                 done += s.trips
-                wait += s.waiting
+                wait += s.wait_total
+                window += s.waiting
                 loss += s.loss
+                delay += s.depart_delay
         for tr in m.trips.values():  # still on the road
             if tr.mode in MOTOR:
                 n += 1
-                wait += tr.waiting
+                wait += tr.wait_total
+                window += tr.waiting
                 loss += tr.time_loss
+                delay += tr.depart_delay
         queued = [h["queued"] for h in m.history]
+        acc = res["demandAccounting"]
         duration = float(sc.duration or eng.t)
         out: dict[str, Any] = {
             "arm": arm, "scenario": scenario_id, "seed": seed, "network": eng.network_id, "duration_s": duration,
             "mean_wait_s": wait / n if n else 0.0, "mean_time_loss_s": loss / n if n else 0.0,
+            "mean_wait_window_s": window / n if n else 0.0, "mean_depart_delay_s": delay / n if n else 0.0,
+            "unserved": acc["neverInserted"] + acc["throttledTrips"] + acc["backgroundRouteFailures"], "never_inserted": acc["neverInserted"],
+            "throttled_trips": acc["throttledTrips"], "refused_trips": acc["backgroundRouteFailures"],
             "vehicles": n, "completed": done, "completed_fraction": done / n if n else 1.0, "throughput_vph": done * 3600.0 / duration,
             "queue_mean_veh": float(np.mean(queued)) if queued else 0.0, "queue_max_veh": float(max(queued)) if queued else 0.0,
             "pending_end": res["demandAccounting"]["pendingNow"], "teleports": res["teleports"], "collisions": res["collisions"],

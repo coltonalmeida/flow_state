@@ -8,7 +8,9 @@ Loop (one process pool; every worker runs whole SUMO episodes, since libsumo hos
 2. **PPO** - each iteration runs ``episodes`` stochastic rollouts with the current weights on random training scenarios / seeds,
    then updates on every junction's trajectory (generalised advantage estimation, clipped objective, masked actions).
 3. **Selection** - every ``val_every`` iterations the greedy policy is run on fixed validation episodes; the saved policy is the
-   checkpoint with the best validation score, not the last one.
+   checkpoint with the best validation score (waiting, time lost including insertion delay, and trips not served, each relative to
+   the queue rule), not the last one. The manifest is rewritten with every selected checkpoint, so an interrupted run leaves a
+   policy the trainer itself described.
 
 Seed discipline: rollouts draw from the training seeds (1000-1199), selection uses validation seeds (2000-2003), and the test
 seeds (3000-3079) are touched only by ``ml.cli evaluate``. The held-out scenario (``stadium``) is never trained or selected on.
@@ -31,7 +33,7 @@ from .dataset import SEEDS, TRAIN_SCENARIOS
 from .episodes import model_dir, run_episode
 from .features import feature_hash
 
-METRIC_KEYS = ("mean_wait_s", "mean_time_loss_s", "throughput_vph", "teleports")
+METRIC_KEYS = ("mean_wait_s", "mean_time_loss_s", "mean_depart_delay_s", "unserved", "throughput_vph", "teleports")
 
 
 @dataclass
@@ -77,7 +79,7 @@ def _rollout(job: dict[str, Any]) -> dict[str, Any]:
 
 def _gae(traj: dict[str, np.ndarray], cfg: RLConfig, use_values: bool = True) -> dict[str, np.ndarray]:
     """Advantages and returns for every junction's trajectory in one episode (the last sample only bootstraps)."""
-    r = R.rewards(traj["queue"], cfg.blend, cfg.reward_scale)  # (T-1, J)
+    r = R.rewards(traj["queue"], cfg.blend, cfg.reward_scale, traj.get("backlog"))  # (T-1, J)
     v = traj["val"] if use_values else np.zeros_like(traj["val"])
     lam = cfg.lam if use_values else 1.0
     adv = np.zeros_like(r)
@@ -135,7 +137,7 @@ def train(cfg: RLConfig) -> dict[str, Any]:
             f.write(json.dumps(rec) + "\n")
         print(json.dumps(rec), flush=True)
 
-    with mp.get_context("spawn").Pool(cfg.workers) as pool:
+    with mp.get_context("spawn").Pool(cfg.workers, maxtasksperchild=6) as pool:  # recycle workers: long-lived SUMO processes grow
         # validation baselines, once (the same episodes every checkpoint is scored on)
         base_rows = pool.map(_rollout, [{"arm": a, "scenario": sc, "seed": s} for a in ("fixed_time", "queue_responsive", "safe_heuristic") for sc, s in val_jobs], chunksize=1)
         baselines = {a: _mean_metrics([r for r in base_rows if r["arm"] == a]) for a in ("fixed_time", "queue_responsive", "safe_heuristic")}
@@ -145,7 +147,9 @@ def train(cfg: RLConfig) -> dict[str, Any]:
         def validate(tag: str, **job: Any) -> dict[str, float]:
             rows = pool.map(_rollout, [{"scenario": sc, "seed": s, **job} for sc, s in val_jobs], chunksize=1)
             m = _mean_metrics(rows)
-            m["score"] = m["mean_wait_s"] / ref["mean_wait_s"] + m["mean_time_loss_s"] / ref["mean_time_loss_s"]  # 2.0 = the shipped heuristic
+            delay = lambda x: x["mean_time_loss_s"] + x["mean_depart_delay_s"]  # noqa: E731 - time lost on the road and waiting to get onto it
+            # 2.5 = the shipped heuristic. Unserved trips count: a policy must not score well by keeping traffic out of the averages
+            m["score"] = m["mean_wait_s"] / ref["mean_wait_s"] + delay(m) / delay(ref) + 0.5 * m["unserved"] / max(1.0, ref["unserved"])
             log({"stage": "validation", "tag": tag, **{k: round(v, 4) for k, v in m.items()}})
             return m
 
@@ -179,12 +183,25 @@ def train(cfg: RLConfig) -> dict[str, Any]:
 
         best = {"score": float("inf"), "iter": -1, "metrics": {}}
 
+        def write_manifest(done_iters: int) -> dict[str, Any]:
+            manifest = {"kind": "shared per-junction PPO policy (hold / end / extend, masked)", "sha256": hashlib.sha256((out / "policy.npz").read_bytes()).hexdigest(),
+                        "obs_dim": R.OBS_DIM, "obs_version": R.OBS_VERSION, "feature_hash": feature_hash(), "network_id": network_id, "config": asdict(cfg),
+                        "selected_iter": best["iter"], "completed_iters": done_iters, "complete": done_iters >= cfg.iters,
+                        "validation": {"selected": best["metrics"], "teacher": teacher_val, "baselines": baselines,
+                                       "episodes": len(val_jobs), "seeds": list(cfg.val_seeds), "scenarios": list(TRAIN_SCENARIOS)},
+                        "seed_pools": {"train": list(SEEDS["train"]), "selection": list(cfg.val_seeds), "test": list(SEEDS["test"])},
+                        "train_wall_s": round(time.time() - t0), "built_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                        "note": "simulation only; verified status is decided by ml.cli evaluate on the test seeds, not here"}
+            (out / "RL_MANIFEST.json").write_text(json.dumps(manifest, indent=1), encoding="utf-8")
+            return manifest
+
         def checkpoint(tag: str, it: int) -> None:
             w = weights()
             m = validate(tag, weights=w, mode="greedy")
             if m["score"] < best["score"]:
                 best.update(score=m["score"], iter=it, metrics=m)
                 np.savez(out / "policy.npz", **w)
+            write_manifest(it)
 
         checkpoint("bc", 0)
 
@@ -229,12 +246,4 @@ def train(cfg: RLConfig) -> dict[str, Any]:
                 checkpoint(f"iter{it}", it)
 
     np.savez(out / "final.npz", **weights())
-    manifest = {"kind": "shared per-junction PPO policy (hold / end / extend, masked)", "sha256": hashlib.sha256((out / "policy.npz").read_bytes()).hexdigest(),
-                "obs_dim": R.OBS_DIM, "obs_version": R.OBS_VERSION, "feature_hash": feature_hash(), "network_id": network_id, "config": asdict(cfg),
-                "selected_iter": best["iter"], "validation": {"selected": best["metrics"], "teacher": teacher_val, "baselines": baselines,
-                                                              "episodes": len(val_jobs), "seeds": list(cfg.val_seeds), "scenarios": list(TRAIN_SCENARIOS)},
-                "seed_pools": {"train": list(SEEDS["train"]), "selection": list(cfg.val_seeds), "test": list(SEEDS["test"])},
-                "train_wall_s": round(time.time() - t0), "built_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
-                "note": "simulation only; verified status is decided by ml.cli evaluate on the test seeds, not here"}
-    (out / "RL_MANIFEST.json").write_text(json.dumps(manifest, indent=1), encoding="utf-8")
-    return manifest
+    return write_manifest(cfg.iters)

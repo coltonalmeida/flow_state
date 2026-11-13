@@ -5,8 +5,9 @@ Safety contract (enforced by the actuator, whatever a model asks for):
 * only the *re-timable green* phases of a junction are ever touched (``Topology.Signal.green_phases``). Amber, all-red,
   pedestrian clearance and protected-left intervals always run their programmed length, and the phase sequence is the plan's;
 * a green is never ended before the junction's minimum green (8 / 10 / 12 s by intersection type);
-* a green is never extended past ``max_green`` (60 s) *by this actuator*. Transit and ambulance priority are separate rules with their
-  own budgets (15 s / 20 s) and may still lengthen a green afterwards; the cap is on the ML layer's own changes, not on the whole system;
+* a green is never extended past ``max_green`` (60 s) by this actuator. Transit and ambulance priority are separate rules with their
+  own budgets (15 s / 20 s) and may lengthen a green afterwards, but the signal manager stops them at ``HARD_MAX_GREEN_S`` (80 s), so
+  no combination of rules holds a green longer than that;
 * the actuator only acts on the pre-timed (``fixed``) program: under SUMO's actuated logic it does nothing;
 * a phase that anything else has re-timed (transit signal priority, ambulance priority, any other rule) is left alone: the
   actuator compares SUMO's next switch with the programmed end plus its own changes. These policies must therefore be
@@ -34,7 +35,7 @@ SWITCH_MARGIN = 3.0
 class GreenActuator:
     """Ends or extends greens, and refuses anything outside the safety contract. Refusals are counted, never executed."""
 
-    TOLERANCE_S = 0.3  # one simulation step
+    TOLERANCE_S = 0.3  # one simulation step, when comparing SUMO's next switch with the expected one
 
     def __init__(self, topo: Topology):
         self.topo = topo
@@ -69,7 +70,7 @@ class GreenActuator:
     def controllable(self, mgr: SignalManager, tid: str) -> bool:
         info = mgr.tls.get(tid)
         sig = self.topo.signals.get(tid)
-        if info is None or sig is None or info.phase not in self._green[tid] or mgr.mode != "fixed":
+        if info is None or sig is None or info.phase not in self._green[tid] or info.phase not in info.retimable or mgr.mode != "fixed":
             return False
         if info.state != sig.phases[info.phase].state:  # another program is running: do not guess
             return False
@@ -84,6 +85,11 @@ class GreenActuator:
     def can_end(self, mgr: SignalManager, tid: str, t: float) -> bool:
         return (self.controllable(mgr, tid) and self.elapsed(mgr, tid, t) >= self.topo.signals[tid].min_green - 1e-6
                 and self._ended.get(tid) != mgr.tls[tid].phase_start)
+
+    def _room(self, mgr: SignalManager, tid: str, t: float, remaining: float) -> float:
+        """Seconds the green may still be extended. A phase start is observed up to one simulation step late, so one step is held back:
+        the green then ends by ``max_green`` on the clock, not one step after it."""
+        return self.topo.signals[tid].max_green - mgr.engine.dt - (self.elapsed(mgr, tid, t) + remaining)
 
     # -- actions -------------------------------------------------------------------------------------------------------
     def end_green(self, mgr: SignalManager, tid: str, t: float) -> bool:
@@ -102,8 +108,7 @@ class GreenActuator:
             self.refused += 1
             return False
         remaining = self.remaining(mgr, tid)
-        room = self.topo.signals[tid].max_green - (self.elapsed(mgr, tid, t) + remaining)
-        grant = min(seconds, room)
+        grant = min(seconds, self._room(mgr, tid, t, remaining))
         if grant < 0.5:
             self.refused += 1
             return False
@@ -118,7 +123,7 @@ class GreenActuator:
         if not self.controllable(mgr, tid) or self._ended.get(tid) == mgr.tls[tid].phase_start:
             return False
         remaining = self.remaining(mgr, tid)
-        return remaining <= window and self.topo.signals[tid].max_green - (self.elapsed(mgr, tid, t) + remaining) >= 0.5
+        return remaining <= window and self._room(mgr, tid, t, remaining) >= 0.5
 
     def summary(self) -> dict[str, Any]:
         return {"greensEnded": self.ended, "extensions": self.extended, "extendedSeconds": round(self.extended_s, 1), "refused": self.refused}
@@ -321,7 +326,7 @@ class LearnedPolicy(_TopologyPolicy):
             raise ValueError("a learned policy needs weights")
         self.weights, self.mode, self.eps, self.record = weights, mode, eps, record
         self.rng = np.random.default_rng(seed)
-        self.traj: dict[str, list[np.ndarray]] = {k: [] for k in ("obs", "mask", "act", "logp", "val", "teacher", "queue")}
+        self.traj: dict[str, list[np.ndarray]] = {k: [] for k in ("obs", "mask", "act", "logp", "val", "teacher", "queue", "backlog")}
         self.counts = [0, 0, 0]
         self.meta: dict[str, Any] = {}
 
@@ -387,7 +392,8 @@ class LearnedPolicy(_TopologyPolicy):
                 self.act.extend(mgr, tid, t, SAMPLE_S)
         if self.record:
             for k, v in (("obs", o["obs"]), ("mask", mask), ("act", action.astype(np.int64)), ("logp", logp), ("val", val.astype(np.float32)),
-                         ("teacher", o["teacher"]), ("queue", o["queue"])):
+                         ("teacher", o["teacher"]), ("queue", o["queue"]),
+                         ("backlog", np.float32((mgr.engine.kpi.get("pending", 0) if mgr.engine.kpi else 0) + mgr.engine.demand.deferred))):
                 self.traj[k].append(v)
 
     def trajectory(self) -> dict[str, np.ndarray]:

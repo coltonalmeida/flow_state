@@ -84,7 +84,7 @@ class QueueResponsive(SignalPolicy):
                     self.switches += 1
                     T.trafficlight.setPhaseDuration(tid, 0.0)
                     continue
-            if remaining <= 1.5 and green_q > red_q + 1 and elapsed + EXTEND_S <= MAX_GREEN_S:
+            if remaining <= 1.5 and green_q > red_q + 1 and elapsed + remaining + EXTEND_S <= MAX_GREEN_S - mgr.engine.dt:
                 self.extensions += 1
                 self.extended_s += EXTEND_S
                 T.trafficlight.setPhaseDuration(tid, remaining + EXTEND_S)

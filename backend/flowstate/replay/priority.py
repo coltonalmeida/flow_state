@@ -2,7 +2,8 @@
 
 It acts only through phase *durations*, the same mechanism as transit signal priority in ``sim.signals``:
 
-* an ambulance approaching a green within ``REACH_M`` gets that green extended (up to ``MAX_EXTENSION_S`` per phase) so it does not catch the amber;
+* an ambulance approaching a green within ``REACH_M`` gets that green extended (up to ``MAX_EXTENSION_S`` per phase, and never past
+  ``sim.signals.HARD_MAX_GREEN_S`` in total) so it does not catch the amber;
 * an ambulance held at a red within ``REACH_M`` makes the conflicting green end as soon as it has served ``MIN_GREEN_S``; the amber, all-red and pedestrian
   clearance intervals that follow are never shortened or skipped, so every signal sequence stays legal.
 
@@ -29,7 +30,7 @@ class EmergencyPriority(SignalPolicy):
         self.cuts = 0
         self.cut_s = 0.0
         self._ext: dict[str, float] = {}  # tls -> seconds granted in its current phase
-        self._cut: dict[str, int] = {}  # tls -> phase index already shortened
+        self._cut: dict[str, float] = {}  # tls -> phase_start of the green already shortened
         self._mark: dict[str, float] = {}  # tls -> phase_start of the phase the budget belongs to
 
     def step(self, mgr: SignalManager, t: float) -> None:
@@ -56,7 +57,7 @@ class EmergencyPriority(SignalPolicy):
                 need = dist / speed + 2.0
                 if remaining >= need:
                     continue
-                grant = min(need - remaining, MAX_EXTENSION_S - self._ext.get(tid, 0.0))
+                grant = min(need - remaining, MAX_EXTENSION_S - self._ext.get(tid, 0.0), mgr.green_room(tid, t, remaining))
                 if grant <= 0.5:
                     continue
                 if tid not in self._ext:
@@ -64,13 +65,13 @@ class EmergencyPriority(SignalPolicy):
                 self._ext[tid] = self._ext.get(tid, 0.0) + grant
                 self.extended_s += grant
                 T.trafficlight.setPhaseDuration(tid, remaining + grant)
-            elif state in "rR" and info.phase in info.retimable and self._cut.get(tid) != info.phase:
+            elif state in "rR" and info.phase in info.retimable and self._cut.get(tid) != info.phase_start:
                 # a conflicting green is running: let it end once it has served its minimum
                 elapsed = t - info.phase_start
                 target = max(0.0, MIN_GREEN_S - elapsed)
                 if remaining - target <= 0.5:
                     continue
-                self._cut[tid] = info.phase
+                self._cut[tid] = info.phase_start
                 self.cuts += 1
                 self.cut_s += remaining - target
                 T.trafficlight.setPhaseDuration(tid, target)

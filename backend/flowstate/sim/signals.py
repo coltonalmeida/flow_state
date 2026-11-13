@@ -701,6 +701,11 @@ def retime_net(net_path: Path | str, offsets: bool = True) -> dict[str, Any]:
     return {"signals": summary, "corridors": corridors}
 
 
+# No rule, alone or stacked on another, may hold a re-timable green longer than this (control rules stop at 60 s; transit and ambulance
+# priority may add their own budgets on top, but only up to this ceiling).
+HARD_MAX_GREEN_S = 80.0
+
+
 @dataclass
 class TlsInfo:
     id: str
@@ -771,6 +776,14 @@ class SignalManager:
                 info.extended = 0.0
             info.state = states.get(tid, info.state)
 
+    def green_room(self, tid: str, t: float, remaining: float) -> float:
+        """Seconds the current phase may still be lengthened before it would run past ``HARD_MAX_GREEN_S`` (unbounded for phases that
+        are not re-timable greens: lengthening a clearance interval is always safe and they are short)."""
+        info = self.tls[tid]
+        if info.phase not in info.retimable:
+            return float("inf")
+        return HARD_MAX_GREEN_S - self.engine.dt - ((t - info.phase_start) + remaining)
+
     def step(self, t: float) -> None:
         if self.tsp:
             self._transit_priority(t)
@@ -798,7 +811,7 @@ class SignalManager:
             remaining = T.trafficlight.getNextSwitch(tid) - T.simulation.getTime()
             if remaining >= need:
                 continue
-            grant = min(need - remaining, self.tsp_max_extension - info.extended)
+            grant = min(need - remaining, self.tsp_max_extension - info.extended, self.green_room(tid, t, remaining))
             if grant <= 0.5:
                 continue
             if info.extended == 0:

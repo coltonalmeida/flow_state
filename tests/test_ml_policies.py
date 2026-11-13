@@ -67,7 +67,7 @@ def _check_contract(mon, topo, check_greens=True):
                 assert dur >= prog - TOL, f"{tid} phase {idx} ({sig.phases[idx].role}) ran {dur}s < programmed {prog}s"
             elif check_greens:
                 assert dur >= min(prog, sig.min_green) - TOL, f"{tid} green {idx} ran {dur}s < min {min(prog, sig.min_green)}s"
-                assert dur <= sig.max_green + TOL, f"{tid} green {idx} ran {dur}s > max_green"
+                assert dur <= sig.max_green, f"{tid} green {idx} ran {dur}s > max_green"
             if k:
                 assert idx == (runs[k - 1][0] + 1) % n, f"{tid}: phase {runs[k - 1][0]} -> {idx}"
 
@@ -172,3 +172,33 @@ def test_actuator_leaves_transit_priority_phases_alone():
     if tsp == 0 or checked == 0:
         pytest.skip("no transit priority extension happened within 600 s of the transit scenario")
     assert checked > 0
+
+
+def test_topology_and_signal_manager_agree_on_retimable_greens():
+    """The two definitions of a re-timable green (static topology, live signal manager) must name the same phases."""
+    eng = make_engine("rush_hour", 7, {"duration": 5}, label="ml_retimable")
+    eng.start()
+    try:
+        topo = build_topology(eng.net_path)
+        assert set(topo.signals) == set(eng.signals.tls)
+        for tid, sig in topo.signals.items():
+            assert set(sig.green_phases) == eng.signals.tls[tid].retimable, tid
+    finally:
+        eng.close()
+
+
+@pytest.mark.parametrize("scenario, params, seed", [("ambulance", {"duration": 5, "calls": 2}, 3100), ("transit", {"duration": 5}, 5)])
+def test_learned_policy_beside_priority_rules_keeps_every_interval_legal(scenario, params, seed):
+    """Ambulance and transit priority running with the learned policy's action space: clearances keep their length and no green passes the ceiling."""
+    from flowstate.sim.signals import HARD_MAX_GREEN_S
+
+    prio = EmergencyPriority()
+    pol = LearnedPolicy(mode="teacher", eps=0.3, seed=4)
+    mon = _drive(scenario, params, [prio, pol], seed=seed)
+    topo = pol.topo
+    _check_contract(mon, topo, check_greens=False)  # priority legitimately re-times greens
+    for tid, runs in mon.runs.items():
+        for idx, dur in runs:
+            if idx in topo.signals[tid].green_phases:
+                assert dur <= HARD_MAX_GREEN_S, f"{tid} green {idx} ran {dur}s past the ceiling"
+    assert pol.act.summary()["greensEnded"] + pol.act.summary()["extensions"] > 0

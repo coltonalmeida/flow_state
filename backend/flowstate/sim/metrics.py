@@ -29,6 +29,13 @@ class Trip:
     waiting: float = 0.0
     distance: float = 0.0
     tag: str | None = None
+    depart_delay: float = 0.0  # seconds the vehicle waited to be inserted
+    wait_done: float = 0.0  # finished standstill spells (SUMO's waiting definition, without its 100 s window)
+    wait_spell: float = 0.0  # the standstill spell in progress
+
+    @property
+    def wait_total(self) -> float:
+        return self.wait_done + self.wait_spell
 
 
 @dataclass
@@ -38,6 +45,8 @@ class ModeStats:
     loss: float = 0.0
     waiting: float = 0.0
     distance: float = 0.0
+    wait_total: float = 0.0
+    depart_delay: float = 0.0
 
     def add(self, tr: Trip) -> None:
         self.trips += 1
@@ -45,6 +54,8 @@ class ModeStats:
         self.loss += tr.time_loss
         self.waiting += tr.waiting
         self.distance += tr.distance
+        self.wait_total += tr.wait_total
+        self.depart_delay += tr.depart_delay
 
     def to_dict(self) -> dict[str, Any]:
         n = max(1, self.trips)
@@ -72,10 +83,16 @@ class Metrics:
         self.trips[vid] = Trip(vid, mode, vtype, t, tag=tag)
         self.departed += 1
 
-    def update_vehicle(self, vid: str, time_loss: float, waiting: float, distance: float) -> None:
+    def update_vehicle(self, vid: str, time_loss: float, waiting: float, distance: float, spell: float | None = None) -> None:
+        """``waiting`` is SUMO's accumulated waiting time (a sliding 100 s window); ``spell`` its consecutive waiting time, which
+        restarts whenever the vehicle moves. Summing the finished spells gives the same quantity with no window."""
         tr = self.trips.get(vid)
         if tr:
             tr.time_loss, tr.waiting, tr.distance = time_loss, waiting, distance
+            if spell is not None:
+                if spell < tr.wait_spell:
+                    tr.wait_done += tr.wait_spell
+                tr.wait_spell = spell
 
     def arrive(self, vid: str, t: float) -> Trip | None:
         tr = self.trips.pop(vid, None)

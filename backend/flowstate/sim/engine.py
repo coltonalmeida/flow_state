@@ -45,7 +45,7 @@ log = logging.getLogger(__name__)
 
 _LABELS = itertools.count(1)
 
-VEH_VARS = (tc.VAR_POSITION, tc.VAR_ANGLE, tc.VAR_SPEED, tc.VAR_SIGNALS, tc.VAR_TIMELOSS, tc.VAR_ACCUMULATED_WAITING_TIME, tc.VAR_DISTANCE)
+VEH_VARS = (tc.VAR_POSITION, tc.VAR_ANGLE, tc.VAR_SPEED, tc.VAR_SIGNALS, tc.VAR_TIMELOSS, tc.VAR_ACCUMULATED_WAITING_TIME, tc.VAR_DISTANCE, tc.VAR_WAITING_TIME)
 PER_VARS = (tc.VAR_POSITION, tc.VAR_ANGLE, tc.VAR_SPEED)
 _LIBSUMO_IN_USE = False
 
@@ -138,6 +138,8 @@ class Engine:
         self.tags: dict[str, str] = {}
         self.teleports = 0
         self.collisions = 0
+        self.loaded = 0  # vehicles SUMO was asked to insert
+        self.inserted = 0  # vehicles that actually entered the network
         self.safety = SafetyObservations()
         self.wall_ms = 0.0
         self._inc_ids = itertools.count(1)
@@ -486,13 +488,16 @@ class Engine:
     def _read_state(self) -> None:
         T = self.T
         t = self.t
+        self.loaded += T.simulation.getLoadedNumber()
         for vid in T.simulation.getDepartedIDList():
+            self.inserted += 1
             T.vehicle.subscribe(vid, VEH_VARS)
             vt = self.vtype.get(vid) or T.vehicle.getTypeID(vid)
             self.vtype[vid] = vt
             b = base_type(vt)
             mode = MODE_OF.get(b, "car")
             self.metrics.depart(vid, mode, b, t, self.tags.get(vid))
+            self.metrics.trips[vid].depart_delay = max(0.0, T.vehicle.getDepartDelay(vid))
             tr = self.tracked.get(vid)
             if tr and tr.data.get("departed") is None:
                 tr.data["departed"] = round(t, 1)
@@ -522,7 +527,7 @@ class Engine:
             if x < -1e6 or r[tc.VAR_SPEED] < 0:  # teleporting: SUMO reports INVALID_DOUBLE_VALUE
                 continue
             vehicles[vid] = (x, y, r[tc.VAR_ANGLE], r[tc.VAR_SPEED], r[tc.VAR_SIGNALS])
-            self.metrics.update_vehicle(vid, r[tc.VAR_TIMELOSS], r[tc.VAR_ACCUMULATED_WAITING_TIME], r[tc.VAR_DISTANCE])
+            self.metrics.update_vehicle(vid, r[tc.VAR_TIMELOSS], r[tc.VAR_ACCUMULATED_WAITING_TIME], r[tc.VAR_DISTANCE], r.get(tc.VAR_WAITING_TIME))
         self.vehicles = vehicles
         for pid in T.simulation.getDepartedPersonIDList():
             T.person.subscribe(pid, PER_VARS)
@@ -678,6 +683,8 @@ class Engine:
             "demandAccounting": {"backgroundSubmitted": self.demand.counter,
                                  "backgroundRouteFailures": self.demand.failed,
                                  "pendingNow": len(self.T.simulation.getPendingVehicles()),
+                                 "loaded": self.loaded, "inserted": self.inserted, "neverInserted": max(0, self.loaded - self.inserted),
+                                 "throttledTrips": round(self.demand.deferred, 2), "meteredDraws": self.demand.metered,
                                  "note": "Submitted vehicles may still be pending or be discarded by SUMO; they are not departures. Legacy metrics include warm-up."},
             "signals": self.signals.summary(),
             "scenario": self.scenario.results(self),

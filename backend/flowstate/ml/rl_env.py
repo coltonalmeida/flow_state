@@ -14,7 +14,9 @@ The observation has no compass, no junction id and no fixed approach count: appr
 serving ("green") and the group it is holding ("red"), so the same network reads a 3-leg and a 4-leg junction.
 
 Reward (per junction, per decision): minus the halting vehicles 5 s later, blended between the junction's own approaches and
-the network mean (so a junction is not paid for pushing its queue onto a neighbour).
+the network mean (so a junction is not paid for pushing its queue onto a neighbour). The network term also counts the vehicles
+held outside the network (waiting to be inserted, or trips the demand model held back because of spillback), so a policy is not
+paid for keeping traffic off the network either.
 """
 
 from __future__ import annotations
@@ -100,10 +102,13 @@ def masked_log_probs(logits: np.ndarray, mask: np.ndarray) -> np.ndarray:
     return z - np.log(np.exp(z).sum(axis=1, keepdims=True))
 
 
-def rewards(queue: np.ndarray, blend: float = 0.5, scale: float = 0.1) -> np.ndarray:
-    """Reward of the decision at sample k for every junction: (T-1, J) from the (T, J) halting counts."""
+def rewards(queue: np.ndarray, blend: float = 0.5, scale: float = 0.1, backlog: np.ndarray | None = None) -> np.ndarray:
+    """Reward of the decision at sample k for every junction: (T-1, J) from the (T, J) halting counts and the (T,) insertion backlog."""
     nxt = queue[1:]
-    return (-scale * (blend * nxt + (1.0 - blend) * nxt.mean(axis=1, keepdims=True))).astype(np.float32)
+    net = nxt.mean(axis=1, keepdims=True)
+    if backlog is not None:
+        net = net + backlog[1:, None] / queue.shape[1]
+    return (-scale * (blend * nxt + (1.0 - blend) * net)).astype(np.float32)
 
 
 def describe() -> dict[str, Any]:
