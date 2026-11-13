@@ -101,31 +101,48 @@ def vehicle_types() -> list[dict[str, Any]]:
     return type_summary()
 
 
+@app.get("/api/controllers")
+def controllers() -> dict[str, Any]:
+    """Signal controllers on the district network with their publication status (``flowstate.ml.registry``). ML controllers that did not pass
+    the held-out gate are ``experimental`` and never the default."""
+    from ..ml.registry import controllers as _controllers
+
+    return _controllers()
+
+
 class ReplayRequest(BaseModel):
     scenario: str
     seed: int | None = None
+    controller: str | None = None
 
 
 @app.post("/api/replay")
 def replay(req: ReplayRequest) -> Response:
-    """Fixed-time vs FlowState for one scenario and seed: two headless 5-minute runs on the scenario's network, recorded for the Results page.
-    Cached on disk per (scenario, seed); the body is the gzipped page asset (see ``flowstate.replay.record``)."""
+    """Fixed-time vs one controller (default FlowState rules) for one scenario and seed: two headless 5-minute runs, recorded for the Results page.
+    Cached on disk per (scenario, seed, controller actually used); ``X-Controller`` names it. The body is the gzipped page asset (see ``flowstate.replay.record``)."""
     import gzip as _gzip
     import random as _random
 
+    from ..ml.registry import DEFAULT_CONTROLLER, resolve
     from ..replay.record import compare_one
     from ..scenarios.catalog import CATALOG
     from .service import WORK_DIR
 
     if req.scenario not in CATALOG:
         raise HTTPException(404, f"unknown scenario '{req.scenario}'")
+    try:
+        res = resolve(req.controller)
+        used = res["used"]
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
     seed = req.seed if req.seed is not None else _random.randint(1, 99999)
-    path = WORK_DIR / "replay-cache" / f"{req.scenario}-{seed}.json.gz"
+    suffix = "" if used == DEFAULT_CONTROLLER and not res["fallback"] else f"-{used}" + ("-fallback" if res["fallback"] else "")
+    path = WORK_DIR / "replay-cache" / f"{req.scenario}-{seed}{suffix}.json.gz"
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
-        doc = compare_one(req.scenario, seed)
+        doc = compare_one(req.scenario, seed, req.controller)
         path.write_bytes(_gzip.compress(json.dumps(doc, separators=(",", ":")).encode(), 6))
-    return Response(path.read_bytes(), media_type="application/octet-stream", headers={"X-Seed": str(seed)})
+    return Response(path.read_bytes(), media_type="application/octet-stream", headers={"X-Seed": str(seed), "X-Controller": used})
 
 
 @app.get("/api/networks/{network_id}")

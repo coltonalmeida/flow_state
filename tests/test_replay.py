@@ -50,3 +50,66 @@ def test_priority_rule_constants_and_summary():
     assert MIN_GREEN_S >= 7.0 and MAX_EXTENSION_S <= 30.0
     s = p.summary()
     assert s["extensions"] == 0 and s["earlyEnds"] == 0 and "no skipped amber" in s["rule"]
+
+
+def test_run_rejects_unknown_controller_and_maps_aliases():
+    import pytest
+
+    from flowstate.replay import record
+
+    with pytest.raises(ValueError):
+        record.run(1, "nope", "rush_hour", False)
+    assert record.ARM_ALIASES["flowstate"] == "queue_responsive" and record.ASSET_CONTROLLER["queue_responsive"] == "flowstate_rules"
+    assert set(record.ARM_IDS) == {"fixed_time", "queue_responsive", "safe_heuristic", "ml_forecast", "rl_ppo"}
+
+
+def test_right_includes_is_truthful_for_experimental_models():
+    from flowstate.replay.record import right_includes
+
+    assert "did not pass the held-out publication gate" in right_includes("rl_ppo", "experimental")
+    assert "did not pass" in right_includes("ml_forecast", "experimental")
+    assert "no learned model" in right_includes("queue_responsive", "default")
+    assert "no trained model" in right_includes("safe_heuristic", "experimental")
+
+
+def test_compare_one_falls_back_when_controller_unavailable(monkeypatch, tmp_path):
+    from concurrent.futures import Future
+
+    from flowstate.replay import record
+
+    monkeypatch.setenv("FLOWSTATE_ML_DIR", str(tmp_path))
+    calls = []
+
+    class Inline:
+        def __init__(self, *a, **k): pass
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def submit(self, fn, *args):
+            f = Future()
+            f.set_result(fn(*args))
+            return f
+
+    def fake_run(seed, arm, scenario_id="x", frames=True):
+        calls.append(arm)
+        r = _run(seed, 1.0, 1.0, 1.0)
+        r.update({"network": "district", "controller": record.ASSET_CONTROLLER.get(arm, arm)})
+        return r
+
+    monkeypatch.setattr(record, "run", fake_run)
+    monkeypatch.setattr(record, "ProcessPoolExecutor", Inline)
+    doc = record.compare_one("rush_hour", 5, "rl_ppo")
+    assert calls == ["fixed_time", "queue_responsive"]
+    assert doc["schema"] == "flowstate.results-demo/4" and doc["rightController"] == "queue_responsive" and doc["rightStatus"] == "default"
+    assert doc["fallback"] and doc["right"]["controller"] == "flowstate_rules"
+    calls.clear()
+    doc = record.compare_one("rush_hour", 5)
+    assert calls == ["fixed_time", "queue_responsive"] and doc["fallback"] is None
+
+
+def test_replay_endpoint_rejects_unknown_controller():
+    from fastapi.testclient import TestClient
+
+    from flowstate.api.app import app
+
+    r = TestClient(app).post("/api/replay", json={"scenario": "rush_hour", "seed": 1, "controller": "bogus"})
+    assert r.status_code == 400 and "unknown controller" in r.json()["detail"]
