@@ -4,7 +4,7 @@ import { VERDICT_LABEL, type ControllerId, type Verdict } from '../lib/controlle
 import { cn } from '../lib/format'
 import { COLOR } from '../lib/resultsTheme'
 
-// Shared building blocks for the Results tab and the (not yet shown) live comparison.
+// Shared building blocks for the Results tab.
 export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn('text-[11px] font-semibold uppercase leading-[1.45] tracking-[0.05em] text-ink-3', className)}>{children}</div>
 }

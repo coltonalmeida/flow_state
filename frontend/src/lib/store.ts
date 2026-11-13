@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import type { Health } from './api'
 import { defaultCongestion } from './scenarioPresets'
-import type { RlJob } from './controllerResults'
 import type { CompareJob, CongestionPreset, Kpi, NetworkGeom, RunInfo, RunResults, RunStatus, ScenarioSpec, SimEvent, StatsMessage } from './types'
 
 export type Selection = { kind: 'vehicle'; id: string } | { kind: 'junction'; id: string } | { kind: 'edge'; id: string } | null
@@ -68,8 +67,6 @@ interface State {
   view: View
   toasts: Toast[]
   compare: CompareJob | null
-  /** Latest controller comparison on /api/rl (Results tab). */
-  rlJob: RlJob | null
   rightTab: 'overview' | 'inspect' | 'events'
   camMode: CamMode
   focusJunction: string
@@ -132,7 +129,6 @@ export const useStore = create<State & Actions>((set, get) => ({
   view: 'simulate',
   toasts: [],
   compare: null,
-  rlJob: null,
   rightTab: 'overview',
   camMode: 'intersection',
   focusJunction: HOME_JUNCTION,

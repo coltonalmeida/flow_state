@@ -1,23 +1,40 @@
 import { useMemo, useState } from 'react'
-import { METRICS, pairs, results, scale, type ControllerId, type DemandResults, type MetricDef, type MetricKey, type MetricStats } from '../lib/controllerResults'
+import {
+  GATE_CHECK_LABEL,
+  METRICS,
+  isExperimental,
+  pairs,
+  presentControllers,
+  results,
+  scale,
+  verdict,
+  type ControllerId,
+  type MetricDef,
+  type MetricKey,
+  type MetricStats,
+} from '../lib/controllerResults'
 import { cn, num } from '../lib/format'
 import { BASE, COLOR, FS, HERO, card, signed } from '../lib/resultsTheme'
-import { Cap, Eyebrow, H2, Swatch } from './resultsUi'
+import { Cap, Eyebrow, H2, Pill, Swatch, Td, Th } from './resultsUi'
 import { FlowBackdrop } from './FlowBackdrop'
 import { SideBySide } from './SideBySide'
 
-// Recorded SUMO evaluation, standard peak demand; over-saturated only confirms the headline.
-const D = results.demand.standard
-const STRESS = results.demand.stress
+// Recorded SUMO evaluation on the held-out test seeds. The headline compares fixed-time with the shipped FlowState rules (queue_responsive).
+const R = results.results
+const TITLE = (c: ControllerId) => results.controllers[c]?.title ?? c
+const BASE_TITLE = TITLE(BASE)
+const FS_TITLE = TITLE(FS)
+const seedText = `${R.seeds[2] ?? R.seeds.length} test seeds (${R.seeds[0]}–${R.seeds[1]})`
+const NOTE = results.source.note?.replace(/^simulation only:\s*/i, '')
 
 const HEADLINE: { k: MetricKey; what: string }[] = [
   { k: 'mean_wait_s', what: 'less waiting per vehicle' },
-  { k: 'mean_travel_s', what: 'less travel time per vehicle' },
+  { k: 'mean_time_loss_s', what: 'less time lost per vehicle' },
 ]
 
-const stats = (d: DemandResults, k: MetricKey) => {
-  const base = d.overall[BASE]?.metrics[k]
-  const fs = d.overall[FS]?.metrics[k]
+const stats = (k: MetricKey) => {
+  const base = R.vsFixed.overall[BASE]?.metrics[k]
+  const fs = R.vsFixed.overall[FS]?.metrics[k]
   return base && fs ? { base: base.mean, fs: fs.mean, vs: fs.vs, up: improved(METRICS[k], fs.vs?.pct) } : null
 }
 
@@ -28,40 +45,33 @@ const secs = (k: MetricKey, v: number) => `${num(scale(METRICS[k], v), METRICS[k
 
 // ---- headline --------------------------------------------------------------
 function Headline() {
-  const stress = HEADLINE.map(({ k }) => ({ k, s: stats(STRESS, k) }))
   return (
     <section className={cn(card, 'flex flex-col gap-8 p-8')}>
       <div className="grid gap-8 min-[720px]:grid-cols-2">
         {HEADLINE.map(({ k, what }) => {
-          const s = stats(D, k)
+          const s = stats(k)
           if (!s) return null
+          const clear = verdict(METRICS[k], s.vs) === 'better'
           return (
             <div key={k} className="flex flex-col gap-2">
               <div className="tnum flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <span className="text-[56px] font-[650] leading-none tracking-[-0.04em]">{secs(k, Math.abs(s.base - s.fs))}</span>
                 {s.vs?.pct != null && (
-                  <span className={cn('rounded-full px-2 py-0.5 text-[13px] font-semibold', s.up ? 'bg-good-soft text-good' : 'bg-muted text-ink-2')}>{signed(s.vs.pct)}</span>
+                  <span className={cn('rounded-full px-2 py-0.5 text-[13px] font-semibold', s.up && clear ? 'bg-good-soft text-good' : 'bg-muted text-ink-2')}>{signed(s.vs.pct)}</span>
                 )}
               </div>
-              <div className="text-[17px] font-semibold">{s.up ? what : what.replace('less', 'more')}</div>
+              <div className="text-[17px] font-semibold">{clear ? what : s.up ? 'no clear change' : what.replace('less', 'more')}</div>
               <Cap className="tnum">
-                {secs(k, s.base)} → {secs(k, s.fs)} · fixed-time → FlowState
+                {secs(k, s.base)} → {secs(k, s.fs)} · {BASE_TITLE} → {FS_TITLE}
+                {!clear && ' · no clear difference'}
               </Cap>
             </div>
           )
         })}
       </div>
-      {stress.every((x) => x.s?.vs?.pct != null) && (
-        <p className="tnum m-0 border-t border-muted pt-5 text-[13px] text-ink-2">
-          {stress.every((x) => x.s?.up) ? 'Still holds when the network is over-saturated: ' : 'When the network is over-saturated: '}
-          {stress.map((x, i) => (
-            <span key={x.k}>
-              {i > 0 && ' · '}
-              <span className={cn(x.s!.up && 'font-semibold text-good')}>{signed(x.s!.vs!.pct!)}</span> {x.k === 'mean_wait_s' ? 'wait' : 'travel'}
-            </span>
-          ))}
-        </p>
-      )}
+      <p className="m-0 border-t border-muted pt-5 text-[13px] text-ink-2">
+        Simulation only{NOTE ? ` (${NOTE})` : ''}. Averages over {R.pairs} paired runs on {seedText} of the held-out test split, {results.scenarios.length} scenarios; {results.network.description}.
+      </p>
     </section>
   )
 }
@@ -78,7 +88,7 @@ function Bars({ m, base, fs }: { m: MetricDef; base: number; fs: number }) {
   const max = Math.max(base, fs) * 1.087 || 1
   const rows: [ControllerId, string, number][] = [
     [BASE, 'Fixed', base],
-    [FS, 'FlowState', fs],
+    [FS, 'Rules', fs],
   ]
   return (
     <div className="flex flex-col gap-1.5 text-[12px]">
@@ -98,10 +108,10 @@ function Bars({ m, base, fs }: { m: MetricDef; base: number; fs: number }) {
   )
 }
 
-function Tile({ k, d }: { k: MetricKey; d: DemandResults }) {
+function Tile({ k }: { k: MetricKey }) {
   const m = METRICS[k]
-  const base = d.overall[BASE]?.metrics[k]
-  const fs = d.overall[FS]?.metrics[k]
+  const base = R.vsFixed.overall[BASE]?.metrics[k]
+  const fs = R.vsFixed.overall[FS]?.metrics[k]
   if (!base || !fs) return null
   return (
     <article className={cn(card, 'flex flex-col gap-3.5 p-5')}>
@@ -124,35 +134,120 @@ function Tile({ k, d }: { k: MetricKey; d: DemandResults }) {
 }
 
 function HeadlineMeasures() {
-  const levels: [string, DemandResults][] = [
-    ['Standard peak', D],
-    ['Over-saturated', STRESS],
-  ]
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-4">
         <H2>Headline measures</H2>
-        <Cap>Lower is better, except throughput. Green marks an improvement over fixed-time.</Cap>
+        <Cap>Lower is better, except throughput. Fixed-time against the FlowState rules.</Cap>
       </div>
-      {levels.map(([label, d]) => (
-        <div key={label} className="flex flex-col gap-2.5">
-          <Eyebrow>{label}</Eyebrow>
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(232px,1fr))] gap-4">
-            {HERO.map((k) => (
-              <Tile key={k} k={k} d={d} />
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(232px,1fr))] gap-4">
+        {HERO.map((k) => (
+          <Tile key={k} k={k} />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+// ---- all controllers -------------------------------------------------------
+const TABLE_METRICS: MetricKey[] = ['mean_wait_s', 'mean_time_loss_s', 'throughput_vph', 'teleports']
+
+function StatusPill({ id }: { id: ControllerId }) {
+  const c = results.controllers[id]
+  if (!c) return null
+  if (isExperimental(c.status)) return <Pill tone="warn">{c.status === 'unavailable' ? 'Unavailable' : 'Experimental — did not pass the held-out gate'}</Pill>
+  if (c.status === 'reference') return <Pill tone="unclear">Reference · no model</Pill>
+  if (c.status === 'default') return <Pill tone="unclear">Default</Pill>
+  if (c.status === 'verified') return <Pill tone="better">Verified</Pill>
+  return <Pill tone="unclear">Baseline</Pill>
+}
+
+/** Mean of one measure with its change against the FlowState rules; coloured only when the paired interval excludes zero. */
+function RulesCell({ id, k }: { id: ControllerId; k: MetricKey }) {
+  const m = METRICS[k]
+  const s = R.vsRules.overall[id]?.metrics[k]
+  if (!s) return <Td>—</Td>
+  const v = id === FS ? 'unclear' : verdict(m, s.vs)
+  const pct = id === FS ? null : s.vs?.pct
+  return (
+    <Td className="tnum">
+      <span className="font-[550] text-ink">{num(scale(m, s.mean), m.digits)}</span>
+      {pct != null && isFinite(pct) && (
+        <span className={cn('ml-2 text-[12px]', v === 'better' ? 'font-semibold text-good' : v === 'worse' ? 'font-semibold text-bad' : 'text-ink-3')} title={v === 'unclear' ? 'No clear difference from the FlowState rules' : undefined}>
+          {signed(pct)}
+        </span>
+      )}
+    </Td>
+  )
+}
+
+function ControllerTable() {
+  const ids = presentControllers()
+  const failing = ids.filter((c) => results.controllers[c]?.gate?.failed?.length)
+  return (
+    <section className={cn(card, 'flex flex-col gap-4 py-6')}>
+      <div className="flex flex-col gap-1 px-6">
+        <H2>All controllers</H2>
+        <Cap>
+          Each figure is the mean over {R.pairs} paired runs; the percentage is the change against {FS_TITLE}, coloured only when the paired 95% interval excludes zero. Lower is better, except throughput.
+        </Cap>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr>
+              <Th left>Controller</Th>
+              {TABLE_METRICS.map((k) => (
+                <Th key={k}>{METRICS[k].label}</Th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {ids.map((c, i) => (
+              <tr key={c}>
+                <Td left last={i === ids.length - 1}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Swatch c={c} />
+                    <span className="font-semibold text-ink">{TITLE(c)}</span>
+                    <StatusPill id={c} />
+                  </div>
+                </Td>
+                {TABLE_METRICS.map((k) => (
+                  <RulesCell key={k} id={c} k={k} />
+                ))}
+              </tr>
             ))}
-          </div>
+          </tbody>
+        </table>
+      </div>
+      {failing.length > 0 && (
+        <div className="flex flex-col gap-3 border-t border-muted px-6 pt-4">
+          <Eyebrow>Publication gate: held-out test seeds against {FS_TITLE}</Eyebrow>
+          {failing.map((c) => {
+            const g = results.controllers[c]!.gate!
+            return (
+              <div key={c} className="text-[13px] leading-[1.5] text-ink-2">
+                <span className="font-semibold text-ink">{TITLE(c)}</span>
+                {isExperimental(results.controllers[c]!.status) ? ' (experimental)' : ' (reference)'} did not pass:{' '}
+                {g.failed.map((f) => GATE_CHECK_LABEL[f] ?? f).join('; ')}.
+              </div>
+            )
+          })}
+          <Cap>Experimental controllers are shown for transparency. None of them is the default, and none is presented as better than the FlowState rules.</Cap>
         </div>
-      ))}
+      )}
     </section>
   )
 }
 
 // ---- head to head ----------------------------------------------------------
-function HeadToHead({ d }: { d: DemandResults }) {
+function HeadToHead() {
+  const [sel, setSel] = useState<ControllerId>(FS) // the rules, never an experimental controller
+  const picks = presentControllers().filter((c) => c !== BASE)
+  const selTitle = TITLE(sel)
   const titles = Object.fromEntries(results.scenarios.map((s) => [s.id, s.title]))
   const held = new Set(results.scenarios.filter((s) => s.heldOut).map((s) => s.id))
-  const pts = useMemo(() => pairs(d, BASE, FS).map((p) => ({ x: p.a.wait, y: p.b.wait, s: p.s, seed: p.seed })), [d])
+  const pts = useMemo(() => pairs(R, BASE, sel).map((p) => ({ x: p.a.wait, y: p.b.wait, s: p.s, seed: p.seed })), [sel])
   const [hover, setHover] = useState<number | null>(null)
   if (!pts.length) return null
   const wins = pts.filter((p) => p.y < p.x).length
@@ -170,10 +265,22 @@ function HeadToHead({ d }: { d: DemandResults }) {
   const hp = hover != null ? pts[hover] : null
   return (
     <section className={cn(card, 'flex flex-col gap-4 p-6')}>
-      <H2>Every run, head to head</H2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <H2>Every run, head to head</H2>
+        <div role="group" aria-label="Controller to compare with fixed-time" className="flex flex-wrap gap-2">
+          {picks.map((c) => (
+            <button key={c} type="button" aria-pressed={sel === c} onClick={() => setSel(c)}
+              className={cn('inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] font-[550] transition-colors', sel === c ? 'bg-ink text-white' : 'bg-muted text-ink-2 hover:bg-border')}>
+              {TITLE(c)}
+              {isExperimental(results.controllers[c]?.status) && <span className={cn('text-[11px]', sel === c ? 'text-white/80' : 'text-warn')}>experimental</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+      {isExperimental(results.controllers[sel]?.status) && <Cap className="text-warn">Experimental — {selTitle} did not pass the held-out gate. Shown for reference; this is not evidence that it is better.</Cap>}
       <div className="overflow-x-auto">
         <div className="relative" style={{ width: 60 + W + 16 + 200, height: 500 }}>
-          <svg width={60 + W + 10} height={500} role="img" aria-label={`Paired mean waits: FlowState waited less in ${wins} of ${pts.length} runs`} onMouseLeave={() => setHover(null)}>
+          <svg width={60 + W + 10} height={500} role="img" aria-label={`Paired mean waits: ${selTitle} waited less in ${wins} of ${pts.length} runs`} onMouseLeave={() => setHover(null)}>
             <text x={14} y={4 + S / 2} transform={`rotate(-90 14 ${4 + S / 2})`} textAnchor="middle" fontSize={12} fontWeight={500} fill="#46505f">
               Mean wait (s)
             </text>
@@ -198,12 +305,12 @@ function HeadToHead({ d }: { d: DemandResults }) {
               <line x1={0} y1={0} x2={0} y2={S} stroke="#d3d8df" />
               <line x1={0} y1={S} x2={W} y2={S} stroke="#d3d8df" />
               <text x={W - 12} y={S - 14} textAnchor="end" fontSize={12} fontWeight={600} fill="#46505f">
-                FlowState waited less
+                {selTitle} waited less
               </text>
               <text x={12} y={22} fontSize={12} fontWeight={600} fill="#46505f">
                 Fixed-time waited less
               </text>
-              {([BASE, FS] as const).map((c) =>
+              {([BASE, sel] as const).map((c) =>
                 pts.map((p, i) => {
                   const h = held.has(p.s)
                   const cy = S - py(c === BASE ? p.x : p.y)
@@ -223,7 +330,7 @@ function HeadToHead({ d }: { d: DemandResults }) {
               {hp && (
                 <g pointerEvents="none">
                   <line x1={px(hp.x)} x2={px(hp.x)} y1={S - py(hp.x)} y2={S - py(hp.y)} stroke="#0c1322" strokeWidth={1.5} strokeDasharray="3 3" />
-                  {([BASE, FS] as const).map((c) => {
+                  {([BASE, sel] as const).map((c) => {
                     const cy = S - py(c === BASE ? hp.x : hp.y)
                     return (
                       <g key={c}>
@@ -252,12 +359,12 @@ function HeadToHead({ d }: { d: DemandResults }) {
               </div>
               <div className="flex justify-between text-[#dfe3ea]">
                 <span className="flex items-center gap-1.5">
-                  <Swatch c={FS} /> FlowState
+                  <Swatch c={sel} /> {selTitle}
                 </span>
                 <span>{hp.y.toFixed(1)} s</span>
               </div>
               <div className="mt-1 flex justify-between border-t border-white/15 pt-1">
-                <span>FlowState</span>
+                <span>{selTitle}</span>
                 <span className="font-semibold">
                   {hp.y - hp.x > 0 ? '+' : '−'}
                   {Math.abs(hp.y - hp.x).toFixed(1)} s ({signed(((hp.y - hp.x) / hp.x) * 100, 0)})
@@ -270,16 +377,16 @@ function HeadToHead({ d }: { d: DemandResults }) {
       <div className="flex flex-wrap gap-x-6 gap-y-2 text-[12px] text-ink-2">
         <span className="flex items-center gap-2">
           <span className="h-2.5 w-2.5 rounded-full" style={{ background: COLOR[BASE] }} />
-          Fixed-time (before FlowState)
+          Fixed-time
         </span>
         <span className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full" style={{ background: COLOR[FS] }} />
-          FlowState (after)
+          <span className="h-2.5 w-2.5 rounded-full" style={{ background: COLOR[sel] }} />
+          {selTitle}
         </span>
-        {[...held].some((h) => d.perScenario[h]) && (
+        {[...held].some((h) => R.vsFixed.perScenario[h]) && (
           <span className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full shadow-[inset_0_0_0_2px_#46505f]" />
-            Hollow = {results.scenarios.find((s) => s.heldOut)?.title.toLowerCase()} (held out of tuning)
+            Hollow = {results.scenarios.find((s) => s.heldOut)?.title.toLowerCase()} (held out of training and tuning)
           </span>
         )}
       </div>
@@ -287,19 +394,9 @@ function HeadToHead({ d }: { d: DemandResults }) {
   )
 }
 
-// ---- live comparison (placeholder) -----------------------------------------
-function LivePlaceholder() {
-  return (
-    <section className="flex flex-col gap-1 rounded-[12px] border border-dashed border-border-strong px-6 py-5">
-      <H2>Live comparison</H2>
-      <Cap>Run your own SUMO comparison — coming soon.</Cap>
-    </section>
-  )
-}
-
 // ---- page ------------------------------------------------------------------
 export function ResultsView() {
-  const patterns = Object.keys(D.perScenario).length
+  const patterns = Object.keys(R.vsFixed.perScenario).length
   return (
     <div className="scroll-y min-w-0 flex-1 bg-canvas">
       <div className="pointer-events-none sticky top-0 z-0 h-0" aria-hidden>
@@ -312,10 +409,10 @@ export function ResultsView() {
         <SideBySide />
         <Headline />
         <HeadlineMeasures />
-        <HeadToHead d={D} />
-        <LivePlaceholder />
+        <ControllerTable />
+        <HeadToHead />
         <p className="m-0 text-[12px] leading-[1.5] text-ink-3">
-          {D.seeds.length} seeds × {patterns} traffic patterns per controller · same network and safety timings for both · rush-hour ramp held out of tuning.
+          {seedText} × {patterns} scenarios per controller ({results.source.split ?? 'test'} split) · same network and safety timings for every controller · {results.scenarios.find((x) => x.heldOut)?.title.toLowerCase() ?? 'one scenario'} held out of training and tuning · minimum green {results.safety.minGreen} s, maximum {results.safety.maxGreen} s, decisions every {results.safety.decision} s; {results.safety.note}. Simulation only{NOTE ? `: ${NOTE}` : ''}.
         </p>
       </main>
     </div>

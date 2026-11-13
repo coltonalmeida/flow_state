@@ -32,6 +32,10 @@ export interface DemoAsset {
   totals: { left: DemoTotals; right: DemoTotals }
   aggregate: { episodes: number; seeds: number[]; metrics: Record<string, AggStat> }
   rightIncludes: string
+  /** schema 4: the controller actually run on the right, its publication status, and why it differs from the one requested (if it does) */
+  rightController?: string
+  rightStatus?: 'baseline' | 'default' | 'reference' | 'verified' | 'experimental' | 'unavailable'
+  fallback?: string | null
   /** schema 3 */
   units?: DemoUnit[]
   focus?: DemoFocus
@@ -90,9 +94,20 @@ export const loadIndex = () => once('index', () => getJson<DemoIndex>(`${BASE}in
 /** The map description of a recorded network (once per network). */
 export const loadNetwork = (id: string) => once(`net:${id}`, () => getJson<NetworkGeom>(`${BASE}${id}-network.json`, 'Map').catch(() => getJson<NetworkGeom>(`/api/networks/${id}`, 'Map')))
 
-/** Runs fixed-time vs FlowState for one scenario on the backend (two headless SUMO runs, ~15 s) and returns the recorded pair. */
-export async function runComparison(scenario: string, seed: number | null): Promise<DemoAsset> {
-  const r = await fetch('/api/replay', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scenario, seed }) })
+/** Request body of POST /api/replay: `controller` is sent only when it is not the default, so default requests stay as they were. */
+export const replayBody = (scenario: string, seed: number | null, controller?: string | null, defaultController?: string | null) =>
+  controller && controller !== defaultController ? { scenario, seed, controller } : { scenario, seed }
+
+/** Title and badge for the right-hand pane. Assets recorded before schema 4 carry no controller and are the FlowState rules. */
+export function rightPane(asset: Pick<DemoAsset, 'rightController' | 'rightStatus' | 'fallback'>, titles: Record<string, string> = {}) {
+  const id = asset.rightController
+  const name = !id || id === 'queue_responsive' ? 'FlowState' : (titles[id] ?? id)
+  return { id: id ?? 'queue_responsive', name, experimental: asset.rightStatus === 'experimental', fallback: asset.fallback ?? null }
+}
+
+/** Runs fixed-time vs a controller (default: the FlowState rules) for one scenario on the backend (two headless SUMO runs, ~15 s) and returns the recorded pair. */
+export async function runComparison(scenario: string, seed: number | null, controller?: string | null, defaultController?: string | null): Promise<DemoAsset> {
+  const r = await fetch('/api/replay', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(replayBody(scenario, seed, controller, defaultController)) })
   if (!r.ok) throw new Error(`Simulation failed (${r.status})`)
   return normalise(await gunzipJson<DemoAsset>(r))
 }

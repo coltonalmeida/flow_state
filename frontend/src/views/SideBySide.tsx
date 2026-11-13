@@ -5,13 +5,14 @@ import { Camera } from '../map/camera'
 import { canopyCache, groundCache, render, type RenderState } from '../map/renderer'
 import { buildScene, type Scene } from '../map/scene'
 import {
-  LOWER_IS_BETTER, STATUS_TEXT, evState, isAmbulance, loadIndex, loadNetwork, loadScenario, locate, runComparison, sample, sideId, spriteCode, windowFor,
+  LOWER_IS_BETTER, STATUS_TEXT, evState, isAmbulance, loadIndex, loadNetwork, loadScenario, locate, rightPane, runComparison, sample, sideId, spriteCode, windowFor,
   type AggStat, type DemoAsset, type DemoFocus, type DemoIndex, type DemoSide, type DemoUnit, type UnitSide,
 } from '../lib/flowstateDemo'
+import { api, type ControllersInfo } from '../lib/api'
 import { cn, num } from '../lib/format'
 import type { NetworkGeom } from '../lib/types'
 import { card, signed } from '../lib/resultsTheme'
-import { Cap, H2 } from './resultsUi'
+import { Cap, H2, Pill } from './resultsUi'
 
 type Loaded = { asset: DemoAsset; net: NetworkGeom; scene: Scene }
 const SPEED = 1.5 // replay a little faster than real time
@@ -359,8 +360,11 @@ export function SideBySide() {
   const [error, setError] = useState<string | null>(null)
   const [started, setStarted] = useState(0)
   const [catalogReady, setCatalogReady] = useState(false)
+  const [ctrls, setCtrls] = useState<ControllersInfo | null>(null)
+  const [controller, setController] = useState<string | null>(null) // null = the server's default
   useEffect(() => {
     let live = true
+    api.controllers().then((c) => { if (live) setCtrls(c) }, () => {})
     loadIndex().then((ix) => { if (live) { setIndex(ix); setTab((s) => s ?? (ix.scenarios.some((x) => x.id === 'ambulance') ? 'ambulance' : ix.scenarios[0]?.id ?? null)) } }, (e: unknown) => { if (live) setIndex({ error: e instanceof Error ? e.message : String(e) }) })
     fetch('/api/scenarios').then((r) => (r.ok ? r.json() : [])).then((list: CatalogScenario[]) => { if (live) setCatalog(Array.isArray(list) ? list : []) }, () => {}).finally(() => { if (live) setCatalogReady(true) })
     return () => { live = false }
@@ -371,13 +375,16 @@ export function SideBySide() {
     const recorded = index.scenarios.some((x) => x.id === tab)
     const live_ = catalog.length > 0 // with the simulation backend every scenario, including the first one, is simulated now; without it the recorded runs are shown
     setBusy(live_); setError(null); setStarted(performance.now())
-    const job = live_ ? runComparison(tab, null).catch(() => (recorded ? loadScenario(tab) : Promise.reject(new Error('Simulation backend unreachable')))) : loadScenario(tab)
+    const chosen = controller && controller !== ctrls?.default_controller ? controller : null
+    // the pre-recorded runs are the default controller only: a chosen controller is never silently swapped for them
+    const job = live_ ? runComparison(tab, null, chosen, ctrls?.default_controller).catch(() => (recorded && !chosen ? loadScenario(tab) : Promise.reject(new Error('Simulation backend unreachable')))) : loadScenario(tab)
     job.then(async (asset) => {
       const net = await loadNetwork(asset.network ?? index.network)
       if (live) setData((d) => ({ ...d, [tab]: { asset, net, scene: buildScene(net) } }))
     }).catch((e: unknown) => { if (live) setError(e instanceof Error ? e.message : String(e)) }).finally(() => { if (live) setBusy(false) })
     return () => { live = false }
-  }, [tab, index, data, catalog, catalogReady])
+  }, [tab, index, data, catalog, catalogReady, controller, ctrls])
+  const titles = useMemo(() => Object.fromEntries((ctrls?.controllers ?? []).map((c) => [c.id, c.title])), [ctrls])
 
   if (index && 'error' in index) {
     return (
@@ -402,18 +409,32 @@ export function SideBySide() {
             </select>
             <ChevronDown size={15} strokeWidth={2.5} className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-ink-3" />
           </div>
+          {ctrls && catalog.length > 0 && (
+            <label className="flex items-center gap-2 text-[13px] text-ink-3">
+              Compare fixed-time with
+              <select aria-label="Controller" value={controller ?? ctrls.default_controller}
+                onChange={(e) => { setData({}); setController(e.target.value === ctrls.default_controller ? null : e.target.value) }}
+                className="h-8 cursor-pointer rounded-full bg-white/70 px-3 text-[13px] font-[550] text-ink shadow-[0_0_0_1px_rgb(12_19_34/0.08)] outline-none">
+                {ctrls.controllers.filter((c) => c.kind !== 'baseline').map((c) => (
+                  <option key={c.id} value={c.id} disabled={!c.available}>
+                    {c.title}{c.status === 'experimental' ? ' (experimental)' : !c.available ? ' (unavailable)' : c.id === ctrls.default_controller ? ' (default)' : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <p className="m-0 text-center text-[13px] text-ink-3">
             {busy ? 'Generating a new run…' : error ? <span className="text-bad">{error}</span> : loaded ? `${loaded.asset.tagline ?? ''}${loaded.asset.tagline ? ' · ' : ''}${runs === 1 ? 'one SUMO run per side' : `${runs} paired SUMO runs`}` : ''}
           </p>
         </div>
       )}
-      {loaded && !busy ? <Replay key={`${tab}:${loaded.asset.seed}`} data={loaded} /> : <Generating busy={busy} started={started} title={options.find((o) => o.id === tab)?.title ?? ''} />}
+      {loaded && !busy ? <Replay key={`${tab}:${loaded.asset.seed}`} data={loaded} titles={titles} /> : <Generating busy={busy} started={started} title={options.find((o) => o.id === tab)?.title ?? ''} rightName={controller ? (titles[controller] ?? controller) : 'FlowState'} />}
     </section>
   )
 }
 
 /** Shown while the backend runs the two simulations: the two empty map frames with what is happening and the elapsed time. */
-function Generating({ busy, started, title }: { busy: boolean; started: number; title: string }) {
+function Generating({ busy, started, title, rightName }: { busy: boolean; started: number; title: string; rightName: string }) {
   const [now, setNow] = useState(() => performance.now())
   useEffect(() => {
     if (!busy) return
@@ -421,12 +442,12 @@ function Generating({ busy, started, title }: { busy: boolean; started: number; 
     return () => clearInterval(id)
   }, [busy])
   const secsGone = Math.max(0, (now - started) / 1000)
-  const steps = ['Building the scenario and drawing its traffic', 'Running fixed-time signals in SUMO', 'Running FlowState on the same traffic', 'Recording both runs']
+  const steps = ['Building the scenario and drawing its traffic', 'Running fixed-time signals in SUMO', `Running ${rightName} on the same traffic`, 'Recording both runs']
   const step = Math.min(steps.length - 1, Math.floor(secsGone / 4.5))
   return (
     <div className="flex flex-col gap-7">
       <div className="grid gap-x-10 gap-y-12 py-2 min-[860px]:grid-cols-2">
-        {['Fixed-time', 'FlowState'].map((n) => (
+        {['Fixed-time', rightName].map((n) => (
           <div key={n} className="flex flex-col items-center gap-6">
             <span className="text-[34px] font-[650] leading-none tracking-[-0.03em] text-ink">{n}</span>
             <div className={cn('w-full p-2.5', shell)}>
@@ -466,7 +487,7 @@ function series(side: DemoSide): { t: number; stopped: number; moving: number }[
 const FIXED = '#eb6834', FLOW = '#2a78d6'
 
 /** Live comparison: vehicles stopped in traffic on each side, drawn up to the replay position (both curves come from the same recorded runs as the maps). */
-function LiveChart({ asset, t, win }: { asset: DemoAsset; t: number; win: [number, number] }) {
+function LiveChart({ asset, t, win, name }: { asset: DemoAsset; t: number; win: [number, number]; name: string }) {
   const data = useMemo(() => {
     const L = series(asset.left), R = series(asset.right)
     const byT = new Map(R.map((r) => [r.t, r.stopped]))
@@ -485,7 +506,7 @@ function LiveChart({ asset, t, win }: { asset: DemoAsset; t: number; win: [numbe
         </div>
         <div className="tnum flex gap-5 text-[13px]">
           <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: FIXED }} />Fixed-time <b className="font-[650] text-ink">{last ? last.fixed : '—'}</b><span className="text-ink-4">avg {mean('fixed').toFixed(1)}</span></span>
-          <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: FLOW }} />FlowState <b className="font-[650] text-ink">{last?.flow ?? '—'}</b><span className="text-ink-4">avg {mean('flow').toFixed(1)}</span></span>
+          <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: FLOW }} />{name} <b className="font-[650] text-ink">{last?.flow ?? '—'}</b><span className="text-ink-4">avg {mean('flow').toFixed(1)}</span></span>
         </div>
       </div>
       <div className="h-[190px]">
@@ -498,7 +519,7 @@ function LiveChart({ asset, t, win }: { asset: DemoAsset; t: number; win: [numbe
             <CartesianGrid stroke="rgb(12 19 34 / 0.06)" vertical={false} />
             <XAxis dataKey="t" type="number" domain={[win[0], win[1]]} tickFormatter={(v: number) => `${Math.round(v - win[0])}s`} tick={{ fontSize: 11, fill: '#8a93a3' }} axisLine={false} tickLine={false} />
             <YAxis domain={[0, Math.ceil(ymax * 1.1)]} tick={{ fontSize: 11, fill: '#8a93a3' }} axisLine={false} tickLine={false} allowDecimals={false} />
-            <Tooltip formatter={(v, k) => [String(v ?? ''), k === 'fixed' ? 'Fixed-time' : 'FlowState']} labelFormatter={(v) => `${Math.round(Number(v) - win[0])} s`} />
+            <Tooltip formatter={(v, k) => [String(v ?? ''), k === 'fixed' ? 'Fixed-time' : name]} labelFormatter={(v) => `${Math.round(Number(v) - win[0])} s`} />
             <Area type="monotone" dataKey="fixed" stroke={FIXED} strokeWidth={2} fill="url(#lc-fixed)" isAnimationActive={false} dot={false} />
             <Area type="monotone" dataKey="flow" stroke={FLOW} strokeWidth={2} fill="url(#lc-flow)" isAnimationActive={false} dot={false} />
           </AreaChart>
@@ -508,13 +529,14 @@ function LiveChart({ asset, t, win }: { asset: DemoAsset; t: number; win: [numbe
   )
 }
 
-function Replay({ data }: { data: Loaded }) {
+function Replay({ data, titles }: { data: Loaded; titles: Record<string, string> }) {
   const [example, setExample] = useState<number | null>(data.asset.example)
-  return <Player key={example} data={data} example={example} setExample={setExample} />
+  return <Player key={example} data={data} titles={titles} example={example} setExample={setExample} />
 }
 
-function Player({ data, example, setExample }: { data: Loaded; example: number | null; setExample: (id: number) => void }) {
+function Player({ data, titles, example, setExample }: { data: Loaded; titles: Record<string, string>; example: number | null; setExample: (id: number) => void }) {
   const { asset, net, scene } = data
+  const right = rightPane(asset, titles)
   const units = asset.ambulances
   const home: ViewMode = units.length ? 'follow' : 'junction'
   const [mode, setMode] = useState<ViewMode>(home)
@@ -548,7 +570,7 @@ function Player({ data, example, setExample }: { data: Loaded; example: number |
   const bestCase = !!unit && stops(unit.right) <= asset.bestCaseStopS && unit.left.stoppedQueueS >= asset.minQueueS
   const sides = [
     { name: 'Fixed-time', sub: 'Pre-timed signal plans', side: asset.left, span: unit?.left, evId: unit ? sideId(unit, 'left') : null, label: 'Fixed-time map' },
-    { name: 'FlowState', sub: 'Same plans + FlowState rules', side: asset.right, span: unit?.right, evId: unit ? sideId(unit, 'right') : null, label: 'FlowState map' },
+    { name: right.name, sub: right.id === 'queue_responsive' ? 'Same plans + FlowState rules' : `Same plans + ${right.name}`, side: asset.right, span: unit?.right, evId: unit ? sideId(unit, 'right') : null, label: `${right.name} map` },
   ] as const
   const focusText = asset.focus?.kind === 'junction' ? `Watching the busiest junction: ${asset.focus.label ?? ''}` : asset.focus?.kind === 'point' ? `Watching the ${asset.focus.label ?? 'incident'} site` : null
 
@@ -557,7 +579,10 @@ function Player({ data, example, setExample }: { data: Loaded; example: number |
       <div className="grid gap-x-10 gap-y-12 py-2 min-[860px]:grid-cols-2">
         {sides.map((x) => (
           <div key={x.name} className="flex flex-col items-center gap-6">
-            <span className="text-[34px] font-[650] leading-none tracking-[-0.03em] text-ink">{x.name}</span>
+            <span className="flex flex-wrap items-center justify-center gap-3 text-[34px] font-[650] leading-none tracking-[-0.03em] text-ink">
+              {x.name}
+              {x.side === asset.right && right.experimental && <Pill tone="warn">Experimental</Pill>}
+            </span>
             <div className={cn('w-full p-2.5', shell)}>
               <div className="relative h-[380px] overflow-hidden rounded-[22px] bg-[#e9ecef] min-[860px]:h-[490px]">
                 <SimMap scene={scene} net={net} side={x.side} subject={x.evId} focus={asset.focus} clock={clock} mode={mode} view={view} onFree={() => setMode('free')} label={x.label} tlsIds={tlsIds} mainCodes={asset.codes === 'main'} />
@@ -568,13 +593,15 @@ function Player({ data, example, setExample }: { data: Loaded; example: number |
             </div>
             <div className="flex flex-col items-center gap-1.5 text-center">
               <span className="text-[13px] leading-none text-ink-3">{x.sub}</span>
+              {x.side === asset.right && right.experimental && <span className="max-w-[420px] text-[12px] leading-[1.4] text-warn">Did not pass the held-out publication gate; shown for reference, not as an improvement.</span>}
+              {x.side === asset.right && right.fallback && <span className="max-w-[420px] text-[12px] leading-[1.4] text-ink-2">Showing the FlowState rules instead: {right.fallback}.</span>}
               {x.evId != null && x.span && unit ? <UnitTag side={x.side} id={x.evId} t={t} span={x.span} label={unit.label ?? 'Ambulance'} /> : focusText && <div className="text-[13px] leading-none text-ink-2">{focusText}</div>}
             </div>
           </div>
         ))}
       </div>
 
-      <LiveChart asset={asset} t={t} win={win} />
+      <LiveChart asset={asset} t={t} win={win} name={right.name} />
 
       <div className={cn('flex items-center gap-4 !rounded-full px-4 py-2.5', panel)}>
         <button type="button" onClick={() => (clock.current >= win[1] ? restart() : setPlaying((p) => !p))} aria-label={playing ? 'Pause' : 'Play'} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-white transition-transform active:scale-95">
