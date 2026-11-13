@@ -5,7 +5,9 @@ Safety contract (enforced by the actuator, whatever a model asks for):
 * only the *re-timable green* phases of a junction are ever touched (``Topology.Signal.green_phases``). Amber, all-red,
   pedestrian clearance and protected-left intervals always run their programmed length, and the phase sequence is the plan's;
 * a green is never ended before the junction's minimum green (8 / 10 / 12 s by intersection type);
-* a green is never extended past ``max_green`` (60 s);
+* a green is never extended past ``max_green`` (60 s) *by this actuator*. Transit and ambulance priority are separate rules with their
+  own budgets (15 s / 20 s) and may still lengthen a green afterwards; the cap is on the ML layer's own changes, not on the whole system;
+* the actuator only acts on the pre-timed (``fixed``) program: under SUMO's actuated logic it does nothing;
 * a phase that anything else has re-timed (transit signal priority, ambulance priority, any other rule) is left alone: the
   actuator compares SUMO's next switch with the programmed end plus its own changes. These policies must therefore be
   appended *after* :class:`~flowstate.replay.priority.EmergencyPriority` (TSP always runs first, inside the manager).
@@ -67,7 +69,7 @@ class GreenActuator:
     def controllable(self, mgr: SignalManager, tid: str) -> bool:
         info = mgr.tls.get(tid)
         sig = self.topo.signals.get(tid)
-        if info is None or sig is None or info.phase not in self._green[tid]:
+        if info is None or sig is None or info.phase not in self._green[tid] or mgr.mode != "fixed":
             return False
         if info.state != sig.phases[info.phase].state:  # another program is running: do not guess
             return False

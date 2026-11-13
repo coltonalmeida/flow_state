@@ -35,7 +35,7 @@
  },
  "selected_iter": 25,
  "completed_iters": 31,
- "partial_run": "training was stopped by the host at iteration 31 of 60 (low system memory); policy.npz is the best validation checkpoint up to iteration 30. This manifest was written afterwards from training_log.jsonl.",
+ "partial_run": "training was stopped by the host at iteration 31 of 60 (low system memory); policy.npz is the best validation checkpoint up to iteration 30. This manifest was written afterwards from training_log.jsonl. The fields in reconstructed_fields were filled in from the code at that time (same commit as the training run), not recorded by the trainer.",
  "validation": {
   "selected": {
    "mean_wait_s": 20.2993,
@@ -107,5 +107,12 @@
  },
  "train_wall_s": 2529,
  "built_at": "2026-11-12T17:37:49",
- "note": "simulation only; verified status is decided by ml.cli evaluate on the test seeds, not here"
+ "note": "simulation only; verified status is decided by ml.cli evaluate on the test seeds, not here",
+ "reconstructed_fields": [
+  "network_id",
+  "feature_hash",
+  "obs_dim",
+  "obs_version",
+  "config"
+ ]
 }

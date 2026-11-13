@@ -36,6 +36,7 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--split", default="test", choices=("test", "val"))
     e.add_argument("--scenarios", default=None)
     e.add_argument("--out", default=None)
+    e.add_argument("--reuse", default=None, help="earlier evaluation JSON whose episodes are kept; only missing arms are run")
     r = sub.add_parser("train-rl")
     r.add_argument("--iters", type=int, default=30)
     r.add_argument("--episodes", type=int, default=14)
@@ -45,6 +46,8 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--val-seeds", type=int, default=4)
     r.add_argument("--seed", type=int, default=1)
     r.add_argument("--out", default="")
+    g = sub.add_parser("regate", help="recompute summaries and gates of a stored evaluation (no simulation)")
+    g.add_argument("path", nargs="?", default=None)
     a = ap.parse_args(argv)
 
     if a.cmd == "topology":
@@ -75,11 +78,17 @@ def main(argv: list[str] | None = None) -> int:
                                 val_seeds=tuple(range(2000, 2000 + a.val_seeds)), out_dir=a.out))
         print(json.dumps({k: man[k] for k in ("selected_iter", "validation", "train_wall_s")}, indent=1))
         return 0
+    if a.cmd == "regate":
+        from .episodes import model_dir
+        from .evaluate import regate, table
+
+        print(table(regate(Path(a.path) if a.path else model_dir() / "evaluation.json")))
+        return 0
     if a.cmd == "evaluate":
         from .evaluate import run, table
 
         doc = run(a.arms.split(",") if a.arms else None, a.seeds, split=a.split, scenarios=a.scenarios.split(",") if a.scenarios else None, workers=a.workers,
-                  out=Path(a.out) if a.out else None)
+                  out=Path(a.out) if a.out else None, reuse=Path(a.reuse) if a.reuse else None)
         print(table(doc))
         return 0
     return 2

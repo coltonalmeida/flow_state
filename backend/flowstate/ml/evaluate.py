@@ -9,7 +9,9 @@ Publication gate (``gate``): an ML arm is ``verified`` only if, against ``queue_
 * the 95 % CI of its paired mean-wait difference is entirely below 0, and
 * its time loss is not worse (paired mean difference <= 0), and
 * it has no teleport regression (paired mean difference <= 0) and no throughput regression (the CI of the paired
-  throughput difference is not entirely below 0, and the mean drop is under 1 %).
+  throughput difference is not entirely below 0, and the mean drop is under 1 %), and
+* in no single scenario (the held-out one included) is it clearly worse: the 95 % CI of the paired wait or time-loss difference
+  within a scenario must not lie entirely above 0. Pooling must not hide a regression on one scenario.
 
 Otherwise it is ``experimental`` and must not be selected by default.
 """
@@ -70,12 +72,14 @@ def summarise(rows: list[dict[str, Any]], baseline: str = "fixed_time", rng_seed
         by.setdefault(r["arm"], {})[(r["scenario"], r["seed"])] = r
     keys = sorted(set.intersection(*(set(v) for v in by.values()))) if by else []
     scenarios = sorted({k[0] for k in keys})
-    rng = np.random.default_rng(rng_seed)
     out: dict[str, Any] = {"baseline": baseline, "arms": sorted(by), "scenarios": scenarios, "episodes": len(ok), "pairs": len(keys),
                            "failed": [{k: r[k] for k in ("arm", "scenario", "seed", "error")} for r in rows if "error" in r]}
 
     def block(sel: list[tuple[str, int]]) -> dict[str, Any]:
         res: dict[str, Any] = {}
+        # one set of resamples per block, shared by every arm and metric: an interval does not depend on which other arms were evaluated
+        tag = sum(map(ord, "".join(sorted({k[0] for k in sel}))))
+        idx = np.random.default_rng([rng_seed, len(sel), tag]).integers(0, max(1, len(sel)), size=(4000, max(1, len(sel))))
         for arm, runs in by.items():
             res[arm] = {"n": len(sel), "metrics": {}}
             for m in METRICS:
@@ -84,7 +88,7 @@ def summarise(rows: list[dict[str, Any]], baseline: str = "fixed_time", rng_seed
                 if arm != baseline and baseline in by:
                     b = np.array([by[baseline][k][m] for k in sel], dtype=float)
                     d = v - b
-                    boot = rng.choice(d, size=(4000, len(d)), replace=True).mean(axis=1) if len(d) > 1 else np.array([d.mean()])
+                    boot = d[idx].mean(axis=1) if len(d) > 1 else np.array([d.mean()])
                     try:
                         p = float(stats.wilcoxon(d).pvalue) if np.any(d != 0) and len(d) > 5 else None
                     except ValueError:
@@ -116,15 +120,27 @@ def gate(summary_vs_heuristic: dict[str, Any], arm: str) -> dict[str, Any]:
         "no_teleport_regression": tele["mean_diff"] <= 0,
         "no_throughput_regression": not (thr["ci95"][1] < 0) and (thr["pct_change"] is None or thr["pct_change"] > -1.0),
     }
+    regressed = []
+    for sc, blk in summary_vs_heuristic.get("per_scenario", {}).items():
+        sm = blk.get(arm, {}).get("metrics", {})
+        for k in ("mean_wait_s", "mean_time_loss_s"):
+            vb = sm.get(k, {}).get("vs_baseline")
+            if vb and vb["paired"] > 1 and vb["ci95"][0] > 0:
+                regressed.append({"scenario": sc, "metric": k, "mean_diff": vb["mean_diff"], "ci95": vb["ci95"]})
+    checks["no_scenario_regression"] = not regressed
     failed = [k for k, v in checks.items() if not v]
-    return {"arm": arm, "status": "verified" if not failed else "experimental", "baseline": GATE_BASELINE, "pairs": wait["paired"], "checks": checks,
+    return {"arm": arm, "scenario_regressions": regressed, "status": "verified" if not failed else "experimental", "baseline": GATE_BASELINE, "pairs": wait["paired"], "checks": checks,
             "failed": failed, "mean_wait_diff_s": wait["mean_diff"], "mean_wait_ci95": wait["ci95"], "mean_wait_pct": wait["pct_change"],
             "time_loss_diff_s": loss["mean_diff"], "time_loss_ci95": loss["ci95"], "teleports_diff": tele["mean_diff"], "throughput_pct": thr["pct_change"]}
 
 
 def run(arms: list[str] | None = None, n_seeds: int | None = None, *, split: str = "test", scenarios: list[str] | None = None, workers: int = 4,
-        out: Path | None = None, directory: Path | None = None) -> dict[str, Any]:
-    """Evaluate ``arms`` on the split's seeds (default: the held-out test seeds, all six scenarios), summarise, gate, save."""
+        out: Path | None = None, directory: Path | None = None, reuse: Path | None = None) -> dict[str, Any]:
+    """Evaluate ``arms`` on the split's seeds (default: the held-out test seeds, all six scenarios), summarise, gate, save.
+
+    ``reuse`` names an earlier evaluation document of the same split: its episodes are kept for the (arm, scenario, seed) triples asked for
+    here, and only the missing ones are run. Episodes are deterministic in (arm, scenario, seed, code, model), so only reuse a document
+    produced by the same code and models."""
     arms = list(arms or DEFAULT_ARMS)
     for needed in ("fixed_time", GATE_BASELINE):
         if needed not in arms:
@@ -132,18 +148,63 @@ def run(arms: list[str] | None = None, n_seeds: int | None = None, *, split: str
     seeds = split_seeds(split, n_seeds)
     scenarios = list(scenarios or EVAL_SCENARIOS)
     t0 = time.time()
-    rows = evaluate(arms, scenarios, seeds, workers=workers, directory=directory)
+    kept: list[dict[str, Any]] = []
+    if reuse is not None:
+        old = json.loads(Path(reuse).read_text(encoding="utf-8"))
+        if old["meta"]["split"] != split:
+            raise ValueError("the reused evaluation is of a different split")
+        prov = old["meta"].get("provenance")
+        if prov is not None and prov.get("models") != provenance(directory)["models"]:
+            raise ValueError("the reused evaluation was produced with different model files")
+        want = {(a, sc, s) for a in arms for sc in scenarios for s in seeds}
+        kept = [r for r in old["episodes"] if "error" not in r and (r["arm"], r["scenario"], r["seed"]) in want]
+    have = {(r["arm"], r["scenario"], r["seed"]) for r in kept}
+    todo = [a for a in arms if any((a, sc, s) not in have for sc in scenarios for s in seeds)]
+    kept = [r for r in kept if r["arm"] not in todo]
+    rows = kept + (evaluate(todo, scenarios, seeds, workers=workers, directory=directory) if todo else [])
+    rows.sort(key=lambda r: (r["scenario"], r["seed"], r["arm"]))
     vs_fixed = summarise(rows, "fixed_time")
     vs_heur = summarise(rows, GATE_BASELINE)
     gates = {a: gate(vs_heur, a) for a in arms if a in ("ml_forecast", "rl_ppo", "safe_heuristic")}
     doc = {"meta": {"split": split, "seeds": [seeds[0], seeds[-1], len(seeds)], "scenarios": scenarios, "arms": arms, "heldout_scenario": HELDOUT_SCENARIO,
-                    "wall_s": round(time.time() - t0, 1), "built_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "wall_s": round(time.time() - t0, 1), "built_at": time.strftime("%Y-%m-%dT%H:%M:%S"), "provenance": provenance(directory),
+                    "reused": {"from": str(reuse), "arms": sorted({r["arm"] for r in kept})} if reuse is not None else None,
                     "note": "simulation only: demand is a seeded model, not calibrated to Toronto counts (docs/TORONTO_DEMAND_STRATEGY.md)"},
            "gate": gates, "vs_fixed_time": vs_fixed, "vs_queue_responsive": vs_heur,
            "episodes": rows}
     out = out or (directory or model_dir()) / ("evaluation.json" if split == "test" else f"evaluation_{split}.json")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(doc, indent=1), encoding="utf-8")
+    return doc
+
+
+def provenance(directory: Path | None = None) -> dict[str, Any]:
+    """Code commit and model hashes an evaluation was produced with (recorded in ``meta``; ``reuse`` refuses different models)."""
+    import subprocess
+
+    d = directory or model_dir()
+    out: dict[str, Any] = {"models": {}}
+    try:
+        out["commit"] = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=Path(__file__).parent, text=True, stderr=subprocess.DEVNULL).strip()
+    except Exception:  # noqa: BLE001
+        out["commit"] = None
+    for name, man in (("ml_forecast", d / "forecaster" / "MODEL_MANIFEST.json"), ("rl_ppo", d / "rl" / "RL_MANIFEST.json")):
+        try:
+            out["models"][name] = json.loads(man.read_text(encoding="utf-8")).get("sha256")
+        except (OSError, ValueError):
+            out["models"][name] = None
+    return out
+
+
+def regate(path: Path) -> dict[str, Any]:
+    """Recompute summaries and gates of a stored evaluation from its episodes (no simulation), e.g. after the gate definition changed."""
+    doc = json.loads(Path(path).read_text(encoding="utf-8"))
+    rows = doc["episodes"]
+    doc["vs_fixed_time"], doc["vs_queue_responsive"] = summarise(rows, "fixed_time"), summarise(rows, GATE_BASELINE)
+    doc["gate"] = {a: gate(doc["vs_queue_responsive"], a) for a in doc["meta"]["arms"] if a in ("ml_forecast", "rl_ppo", "safe_heuristic")}
+    doc["meta"]["regated_at"] = time.strftime("%Y-%m-%dT%H:%M:%S")
+    doc["meta"].setdefault("provenance", provenance())
+    Path(path).write_text(json.dumps(doc, indent=1), encoding="utf-8")
     return doc
 
 
