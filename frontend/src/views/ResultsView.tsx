@@ -396,6 +396,7 @@ function HeadToHead() {
 
 // ---- page ------------------------------------------------------------------
 export function ResultsView() {
+  const [shown, setShown] = useState<{ title: string; experimental: boolean } | null>(null) // the replay's controller, when not the default
   const patterns = Object.keys(R.vsFixed.perScenario).length
   return (
     <div className="scroll-y min-w-0 flex-1 bg-canvas">
@@ -405,8 +406,9 @@ export function ResultsView() {
         </div>
       </div>
       <main className="relative z-10 mx-auto flex max-w-[1100px] flex-col gap-8 px-4 pb-[72px] pt-10 min-[720px]:px-8">
-        <h1 className="m-0 text-balance pt-2 text-center text-[40px] font-[650] leading-[1.1] tracking-[-0.03em]">Fixed-time <span className="text-ink-3">vs</span> FlowState</h1>
-        <SideBySide />
+        <h1 className="m-0 text-balance pt-2 text-center text-[40px] font-[650] leading-[1.1] tracking-[-0.03em]">Fixed-time <span className="text-ink-3">vs</span> {shown ? shown.title : 'FlowState'}</h1>
+        {shown?.experimental && <p className="m-0 -mt-5 text-center text-[13px] text-ink-3">Experimental controller in the replay below. The evaluation further down compares every controller; FlowState's default is the hand-written rules.</p>}
+        <SideBySide onController={setShown} />
         <Headline />
         <HeadlineMeasures />
         <ControllerTable />

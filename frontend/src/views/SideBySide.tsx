@@ -351,7 +351,7 @@ function Units({ units, example, onPick }: { units: DemoUnit[]; example: number 
 // ---- section ---------------------------------------------------------------
 interface CatalogScenario { id: string; title: string; tagline: string }
 
-export function SideBySide() {
+export function SideBySide({ onController }: { onController?: (c: { title: string; experimental: boolean } | null) => void } = {}) {
   const [index, setIndex] = useState<DemoIndex | { error: string } | null>(null)
   const [catalog, setCatalog] = useState<CatalogScenario[]>([])
   const [tab, setTab] = useState<string | null>(null)
@@ -385,6 +385,11 @@ export function SideBySide() {
     return () => { live = false }
   }, [tab, index, data, catalog, catalogReady, controller, ctrls])
   const titles = useMemo(() => Object.fromEntries((ctrls?.controllers ?? []).map((c) => [c.id, c.title])), [ctrls])
+  // the page title names what the replay shows: an experimental controller must not sit under a "FlowState" headline
+  useEffect(() => {
+    const c = controller ? ctrls?.controllers.find((x) => x.id === controller) : null
+    onController?.(c && c.available ? { title: c.title, experimental: c.status === 'experimental' } : null)
+  }, [controller, ctrls, onController])
 
   if (index && 'error' in index) {
     return (

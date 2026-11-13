@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 METRICS = [
-    "mean_wait_s", "mean_time_loss_s", "throughput_vph", "completed_fraction", "queue_mean_veh",
+    "mean_wait_s", "mean_time_loss_s", "mean_wait_window_s", "mean_depart_delay_s", "unserved", "throughput_vph", "completed_fraction", "queue_mean_veh",
     "queue_max_veh", "pending_end", "teleports", "collisions",
 ]
 
@@ -76,7 +76,8 @@ def main(src: Path) -> None:
             entry["gate"] = {"status": g["status"], "failed": g.get("failed", []), "checks": g.get("checks", {}), "pairs": g.get("pairs"),
                              "meanWaitDiffS": g.get("mean_wait_diff_s"), "meanWaitCi95": g.get("mean_wait_ci95"),
                              "timeLossDiffS": g.get("time_loss_diff_s"), "timeLossCi95": g.get("time_loss_ci95"),
-                             "teleportsDiff": g.get("teleports_diff"), "throughputPct": g.get("throughput_pct")}
+                             "teleportsDiff": g.get("teleports_diff"), "throughputPct": g.get("throughput_pct"), "unservedDiff": g.get("unserved_diff"),
+                             "margins": g.get("margins"), "scenarioRegressions": g.get("scenario_regressions", [])}
         controllers[c] = entry
     heldout = meta.get("heldout_scenario")
     scenarios = [{"id": s, "title": SCENARIO_TABLE.get(s, (s, ""))[0], "description": SCENARIO_TABLE.get(s, (s, ""))[1], "heldOut": s == heldout} for s in meta["scenarios"]]
@@ -88,7 +89,8 @@ def main(src: Path) -> None:
         "baseline": "fixed_time",
         "flowstate": "queue_responsive",
         "controllers": controllers,
-        "safety": {"minGreen": "8-12", "maxGreen": 60, "decision": 5, "note": "amber, all-red, pedestrian clearance and protected-left phases always run their programmed length"},
+        "safety": {"minGreen": "8-12", "maxGreen": 60, "hardMaxGreen": 80, "decision": 5,
+                   "note": "amber, all-red, pedestrian clearance and protected-left phases always run their programmed length; transit and ambulance priority can hold a green to at most 80 s"},
         "scenarios": scenarios,
         "results": {
             "seeds": meta["seeds"],

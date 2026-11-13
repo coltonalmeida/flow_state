@@ -7,6 +7,9 @@ export type ControllerStatus = 'baseline' | 'default' | 'reference' | 'verified'
 export type MetricKey =
   | 'mean_wait_s'
   | 'mean_time_loss_s'
+  | 'mean_wait_window_s'
+  | 'mean_depart_delay_s'
+  | 'unserved'
   | 'throughput_vph'
   | 'completed_fraction'
   | 'queue_mean_veh'
@@ -111,7 +114,10 @@ export interface MetricDef {
 }
 
 export const METRICS: Record<MetricKey, MetricDef> = {
-  mean_wait_s: { key: 'mean_wait_s', label: 'Mean wait', unit: 's', better: 'lower', digits: 1, note: 'Seconds each vehicle stood still (SUMO keeps a sliding 100 s window), over every vehicle that departed' },
+  mean_wait_s: { key: 'mean_wait_s', label: 'Mean wait', unit: 's', better: 'lower', digits: 1, note: 'Seconds each vehicle stood still in total, over every vehicle that departed; not capped' },
+  mean_wait_window_s: { key: 'mean_wait_window_s', label: 'Mean wait (100 s window)', unit: 's', better: 'lower', digits: 1, note: 'The accumulated waiting time SUMO reports, which only counts the last 100 s of each vehicle; the figure the live app shows' },
+  mean_depart_delay_s: { key: 'mean_depart_delay_s', label: 'Wait to enter the network', unit: 's', better: 'lower', digits: 1, note: 'Seconds a vehicle waited before there was room to insert it' },
+  unserved: { key: 'unserved', label: 'Trips not served', unit: 'veh', better: 'lower', digits: 1, note: 'Trips the demand model held back because the network was congested, plus vehicles never inserted; per run. These are in no average above' },
   mean_time_loss_s: { key: 'mean_time_loss_s', label: 'Time lost per vehicle', unit: 's', better: 'lower', digits: 1, note: 'Seconds lost against free-flow speed, over every vehicle that departed; not capped' },
   throughput_vph: { key: 'throughput_vph', label: 'Throughput', unit: 'veh/h', better: 'higher', digits: 0, note: 'Vehicles that completed their trip, per hour' },
   completed_fraction: { key: 'completed_fraction', label: 'Trips completed', unit: '%', better: 'higher', digits: 1, note: 'Completed / departed by the end of the run', scale: 100 },
@@ -164,8 +170,10 @@ export const presentControllers = (): ControllerId[] => CONTROLLER_ORDER.filter(
 
 export const GATE_CHECK_LABEL: Record<string, string> = {
   wait_ci_below_zero: 'mean wait is not clearly lower than the FlowState rules',
-  time_loss_not_worse: 'time lost per vehicle is worse than the FlowState rules',
-  no_teleport_regression: 'more gridlock teleports than the FlowState rules',
-  no_throughput_regression: 'throughput is lower than the FlowState rules',
+  time_loss_not_worse: 'time lost per vehicle may be more than 2% worse than the FlowState rules',
+  no_teleport_regression: 'may cause more gridlock teleports than the FlowState rules',
+  no_throughput_regression: 'throughput may be more than 1% lower than the FlowState rules',
+  no_insertion_regression: 'serves fewer trips, or keeps vehicles waiting longer to enter, than the FlowState rules',
   no_scenario_regression: 'clearly worse than the FlowState rules in at least one scenario',
+  evaluation_outdated: 'the stored evaluation predates the current measurements',
 }
