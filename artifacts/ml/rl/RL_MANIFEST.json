@@ -1,6 +1,6 @@
 {
  "kind": "shared per-junction PPO policy (hold / end / extend, masked)",
- "sha256": "55eef64e12b942ce172617dae9ef9cc6bff6c39f5dbca59d93605cf183bbcebb",
+ "sha256": "83bdff775356c9a3d41b4d028cdfaed6ce7ee71d0cb3a4e598c21f2e99e46395",
  "obs_dim": 26,
  "obs_version": 1,
  "feature_hash": "bd4110a31b7160f4",
@@ -9,7 +9,7 @@
   "seed": 1,
   "iters": 60,
   "episodes": 14,
-  "workers": 14,
+  "workers": 8,
   "bc_episodes": 28,
   "bc_epochs": 30,
   "bc_eps": 0.1,
@@ -33,44 +33,51 @@
   ],
   "out_dir": ""
  },
- "selected_iter": 25,
- "completed_iters": 31,
- "partial_run": "training was stopped by the host at iteration 31 of 60 (low system memory); policy.npz is the best validation checkpoint up to iteration 30. This manifest was written afterwards from training_log.jsonl. The fields in reconstructed_fields were filled in from the code at that time (same commit as the training run), not recorded by the trainer.",
+ "selected_iter": 55,
+ "completed_iters": 60,
+ "complete": true,
  "validation": {
   "selected": {
-   "mean_wait_s": 20.2993,
-   "mean_time_loss_s": 72.7368,
-   "throughput_vph": 1527.6,
-   "teleports": 0.0,
-   "score": 1.9288
+   "mean_wait_s": 33.44419035378651,
+   "mean_time_loss_s": 72.79226950055136,
+   "mean_depart_delay_s": 0.06722428375862917,
+   "unserved": 6.977500000000001,
+   "throughput_vph": 1527.9,
+   "teleports": 0.1,
+   "score": 2.354958989297271
   },
   "teacher": {
-   "stage": "validation",
-   "tag": "teacher",
-   "mean_wait_s": 22.1551,
-   "mean_time_loss_s": 77.7778,
-   "throughput_vph": 1504.3,
+   "mean_wait_s": 37.50065846089518,
+   "mean_time_loss_s": 77.72816137546315,
+   "mean_depart_delay_s": 0.070402792800805,
+   "unserved": 10.227999999999998,
+   "throughput_vph": 1508.9,
    "teleports": 0.15,
-   "score": 2.0838,
-   "wall_s": 212
+   "score": 2.737410221583278
   },
   "baselines": {
    "fixed_time": {
-    "mean_wait_s": 25.31,
-    "mean_time_loss_s": 87.975,
+    "mean_wait_s": 47.111145360938146,
+    "mean_time_loss_s": 87.97496644144334,
+    "mean_depart_delay_s": 0.07042401092989554,
+    "unserved": 26.588,
     "throughput_vph": 1423.0,
     "teleports": 0.15
    },
    "queue_responsive": {
-    "mean_wait_s": 21.085,
-    "mean_time_loss_s": 75.291,
-    "throughput_vph": 1515.2,
+    "mean_wait_s": 34.9250818472356,
+    "mean_time_loss_s": 75.32749000263972,
+    "mean_depart_delay_s": 0.07052062234410586,
+    "unserved": 8.094,
+    "throughput_vph": 1513.2,
     "teleports": 0.0
    },
    "safe_heuristic": {
-    "mean_wait_s": 21.265,
-    "mean_time_loss_s": 75.955,
-    "throughput_vph": 1504.4,
+    "mean_wait_s": 35.62173226287773,
+    "mean_time_loss_s": 75.8978962603255,
+    "mean_depart_delay_s": 0.0703682117505629,
+    "unserved": 8.806000000000001,
+    "throughput_vph": 1504.2,
     "teleports": 0.0
    }
   },
@@ -105,14 +112,7 @@
    3079
   ]
  },
- "train_wall_s": 2529,
- "built_at": "2026-11-12T17:37:49",
- "note": "simulation only; verified status is decided by ml.cli evaluate on the test seeds, not here",
- "reconstructed_fields": [
-  "network_id",
-  "feature_hash",
-  "obs_dim",
-  "obs_version",
-  "config"
- ]
+ "train_wall_s": 3529,
+ "built_at": "2026-11-13T15:05:49",
+ "note": "simulation only; verified status is decided by ml.cli evaluate on the test seeds, not here"
 }

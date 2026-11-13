@@ -40,3 +40,5 @@ data/networks/_*/
 
 # ML datasets are regenerated with `python -m flowstate.ml.cli dataset` (large); models and evaluations live in artifacts/ml.
 data/ml/
+# Last-iterate PPO weights; the published policy is the validation-selected artifacts/ml/rl/policy.npz.
+artifacts/ml/rl/final.npz
