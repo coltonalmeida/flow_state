@@ -1,5 +1,5 @@
 {
- "builtAt": "2026-10-18T06:47:19",
+ "builtAt": "2026-11-13T23:03:07",
  "seeds": [
   3100,
   3101,
@@ -12,19 +12,19 @@
  ],
  "arms": {
   "left": "fixed_time",
-  "right": "flowstate_rules"
+  "right": "rl_ppo"
  },
  "scenarios": {
   "ambulance": {
    "aggregate": {
     "ev_travel_mean_s": {
      "left_mean": 135.562,
-     "right_mean": 112.756,
-     "mean_diff": -22.806,
-     "pct": -16.82,
+     "right_mean": 110.931,
+     "mean_diff": -24.631,
+     "pct": -18.17,
      "ci95": [
-      -43.269,
-      -0.813
+      -46.994,
+      -4.929
      ],
      "pairs": 8,
      "better": 7,
@@ -32,12 +32,12 @@
     },
     "ev_stopped_red_s": {
      "left_mean": 18.688,
-     "right_mean": 7.875,
-     "mean_diff": -10.812,
-     "pct": -57.86,
+     "right_mean": 9.625,
+     "mean_diff": -9.062,
+     "pct": -48.49,
      "ci95": [
-      -24.125,
-      1.688
+      -23.502,
+      4.5
      ],
      "pairs": 8,
      "better": 6,
@@ -45,25 +45,25 @@
     },
     "ev_stopped_queue_s": {
      "left_mean": 33.562,
-     "right_mean": 14.688,
-     "mean_diff": -18.875,
-     "pct": -56.24,
+     "right_mean": 16.562,
+     "mean_diff": -17.0,
+     "pct": -50.65,
      "ci95": [
-      -31.439,
-      -5.875
+      -29.5,
+      -6.562
      ],
      "pairs": 8,
-     "better": 7,
-     "worse": 1
+     "better": 8,
+     "worse": 0
     },
     "queue_total_mean_veh": {
      "left_mean": 20.637,
-     "right_mean": 17.122,
-     "mean_diff": -3.516,
-     "pct": -17.04,
+     "right_mean": 17.078,
+     "mean_diff": -3.56,
+     "pct": -17.25,
      "ci95": [
-      -3.897,
-      -3.113
+      -4.47,
+      -2.694
      ],
      "pairs": 8,
      "better": 8,
@@ -71,11 +71,11 @@
     },
     "throughput_vph": {
      "left_mean": 1165.5,
-     "right_mean": 1254.0,
-     "mean_diff": 88.5,
-     "pct": 7.59,
+     "right_mean": 1239.0,
+     "mean_diff": 73.5,
+     "pct": 6.31,
      "ci95": [
-      75.0,
+      43.5,
       103.5
      ],
      "pairs": 8,
@@ -97,25 +97,25 @@
     },
     "car_trips": {
      "left_mean": 89.125,
-     "right_mean": 95.75,
-     "mean_diff": 6.625,
-     "pct": 7.43,
+     "right_mean": 94.375,
+     "mean_diff": 5.25,
+     "pct": 5.89,
      "ci95": [
-      5.5,
-      7.625
+      2.75,
+      7.375
      ],
      "pairs": 8,
-     "better": 8,
+     "better": 6,
      "worse": 0
     },
     "car_travelTime": {
      "left_mean": 137.5,
-     "right_mean": 135.713,
-     "mean_diff": -1.788,
-     "pct": -1.3,
+     "right_mean": 132.037,
+     "mean_diff": -5.463,
+     "pct": -3.97,
      "ci95": [
-      -4.525,
-      0.825
+      -9.5,
+      -1.325
      ],
      "pairs": 8,
      "better": 5,
@@ -123,42 +123,55 @@
     },
     "car_timeLoss": {
      "left_mean": 72.6,
-     "right_mean": 69.175,
-     "mean_diff": -3.425,
-     "pct": -4.72,
+     "right_mean": 66.362,
+     "mean_diff": -6.237,
+     "pct": -8.59,
      "ci95": [
-      -5.3,
-      -1.688
+      -9.362,
+      -2.85
      ],
      "pairs": 8,
      "better": 7,
      "worse": 1
     },
     "car_waiting": {
-     "left_mean": 25.075,
-     "right_mean": 22.462,
-     "mean_diff": -2.613,
-     "pct": -10.42,
+     "left_mean": 38.513,
+     "right_mean": 31.362,
+     "mean_diff": -7.15,
+     "pct": -18.57,
      "ci95": [
-      -3.9,
-      -1.175
+      -9.375,
+      -4.65
+     ],
+     "pairs": 8,
+     "better": 8,
+     "worse": 0
+    },
+    "car_speed": {
+     "left_mean": 20.625,
+     "right_mean": 21.788,
+     "mean_diff": 1.163,
+     "pct": 5.64,
+     "ci95": [
+      0.613,
+      1.6
      ],
      "pairs": 8,
      "better": 7,
      "worse": 1
     },
-    "car_speed": {
-     "left_mean": 20.625,
-     "right_mean": 21.375,
-     "mean_diff": 0.75,
-     "pct": 3.64,
+    "car_waitingWindow": {
+     "left_mean": 25.075,
+     "right_mean": 20.762,
+     "mean_diff": -4.312,
+     "pct": -17.2,
      "ci95": [
-      0.475,
-      0.988
+      -5.787,
+      -2.625
      ],
      "pairs": 8,
      "better": 7,
-     "worse": 0
+     "worse": 1
     }
    },
    "perSeed": [
@@ -178,8 +191,9 @@
        "trips": 98,
        "travelTime": 151.6,
        "timeLoss": 81.6,
-       "waiting": 27.4,
-       "speed": 20.1
+       "waiting": 43.6,
+       "speed": 20.1,
+       "waitingWindow": 27.4
       },
       "junctionMaxQueue": {
        "n0_5": 8,
@@ -194,42 +208,47 @@
      "right": {
       "ev_total": 2,
       "ev_unfinished": 0,
-      "ev_travel_mean_s": 163.5,
-      "ev_stopped_red_s": 15.0,
-      "ev_stopped_queue_s": 22.5,
-      "queue_total_mean_veh": 18.46511627906977,
-      "throughput_vph": 1356.0,
+      "ev_travel_mean_s": 159.85,
+      "ev_stopped_red_s": 20.5,
+      "ev_stopped_queue_s": 26.0,
+      "queue_total_mean_veh": 17.44518272425249,
+      "throughput_vph": 1344.0,
       "teleports": 0,
       "collisions": 0,
       "car": {
        "trips": 106,
-       "travelTime": 142.2,
-       "timeLoss": 72.9,
-       "waiting": 24.2,
-       "speed": 21.1
+       "travelTime": 137.6,
+       "timeLoss": 68.7,
+       "waiting": 31.4,
+       "speed": 22.1,
+       "waitingWindow": 21.7
       },
       "junctionMaxQueue": {
-       "n3_0": 8,
-       "n0_3": 8,
-       "n5_7": 7,
-       "n3_1": 7,
-       "n3_3": 6,
-       "n0_5": 5
+       "n3_5": 5,
+       "n3_3": 5,
+       "n0_3": 5,
+       "n3_7": 5,
+       "n0_5": 4,
+       "n3_0": 4
       },
       "rules": [
        {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 99,
-        "switches": 4,
-        "extensions": 0,
-        "extendedSeconds": 0.0
+        "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
+        "extensions": 6,
+        "extendedSeconds": 90.6,
+        "earlyEnds": 3,
+        "earlyEndSeconds": 37.2
        },
        {
-        "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
-        "extensions": 8,
-        "extendedSeconds": 101.2,
-        "earlyEnds": 5,
-        "earlyEndSeconds": 56.0
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1592,
+        "ends": 123,
+        "extends": 1,
+        "greensEnded": 123,
+        "extensions": 1,
+        "extendedSeconds": 5.0,
+        "refused": 0
        }
       ]
      },
@@ -273,29 +292,29 @@
         "kind": "ambulance",
         "call": 1,
         "departS": 36.5,
-        "stoppedRedS": 30.0,
-        "stoppedQueueS": 36.0,
+        "stoppedRedS": 41.0,
+        "stoppedQueueS": 37.0,
         "first": 36,
-        "last": 237,
-        "travelS": 201.5,
+        "last": 233,
+        "travelS": 197.5,
         "finished": true,
         "freeFlowS": 58.7,
-        "id": 66
+        "id": 65
        },
        {
         "vid": "amb2",
         "label": "Ambulance 2",
         "kind": "ambulance",
         "call": 2,
-        "departS": 74.0,
+        "departS": 71.5,
         "stoppedRedS": 0.0,
-        "stoppedQueueS": 9.0,
-        "first": 74,
-        "last": 196,
-        "travelS": 125.5,
+        "stoppedQueueS": 15.0,
+        "first": 71,
+        "last": 193,
+        "travelS": 122.2,
         "finished": true,
         "freeFlowS": 52.8,
-        "id": 86
+        "id": 84
        }
       ]
      }
@@ -316,8 +335,9 @@
        "trips": 82,
        "travelTime": 140.2,
        "timeLoss": 72.4,
-       "waiting": 23.3,
-       "speed": 21.0
+       "waiting": 36.9,
+       "speed": 21.0,
+       "waitingWindow": 23.3
       },
       "junctionMaxQueue": {
        "n5_3": 8,
@@ -332,42 +352,47 @@
      "right": {
       "ev_total": 2,
       "ev_unfinished": 0,
-      "ev_travel_mean_s": 117.7,
-      "ev_stopped_red_s": 11.5,
-      "ev_stopped_queue_s": 13.0,
-      "queue_total_mean_veh": 13.56810631229236,
-      "throughput_vph": 1164.0,
+      "ev_travel_mean_s": 98.95,
+      "ev_stopped_red_s": 21.0,
+      "ev_stopped_queue_s": 4.0,
+      "queue_total_mean_veh": 13.20265780730897,
+      "throughput_vph": 1200.0,
       "teleports": 0,
-      "collisions": 3,
+      "collisions": 0,
       "car": {
-       "trips": 88,
-       "travelTime": 135.7,
-       "timeLoss": 68.5,
-       "waiting": 21.9,
-       "speed": 21.7
+       "trips": 90,
+       "travelTime": 129.5,
+       "timeLoss": 63.4,
+       "waiting": 28.1,
+       "speed": 22.6,
+       "waitingWindow": 18.3
       },
       "junctionMaxQueue": {
-       "n3_3": 5,
-       "n0_3": 5,
-       "n0_7": 5,
-       "n3_7": 5,
        "n3_0": 4,
-       "n0_0": 4
+       "n3_3": 4,
+       "n0_3": 4,
+       "n5_3": 4,
+       "n5_7": 4,
+       "n0_5": 4
       },
       "rules": [
        {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 104,
-        "switches": 1,
-        "extensions": 0,
-        "extendedSeconds": 0.0
+        "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
+        "extensions": 2,
+        "extendedSeconds": 13.8,
+        "earlyEnds": 4,
+        "earlyEndSeconds": 74.5
        },
        {
-        "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
-        "extensions": 1,
-        "extendedSeconds": 6.1,
-        "earlyEnds": 6,
-        "earlyEndSeconds": 77.5
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1604,
+        "ends": 112,
+        "extends": 0,
+        "greensEnded": 112,
+        "extensions": 0,
+        "extendedSeconds": 0.0,
+        "refused": 0
        }
       ]
      },
@@ -411,11 +436,11 @@
         "kind": "ambulance",
         "call": 1,
         "departS": 36.5,
-        "stoppedRedS": 23.0,
-        "stoppedQueueS": 16.0,
+        "stoppedRedS": 11.0,
+        "stoppedQueueS": 4.0,
         "first": 36,
-        "last": 186,
-        "travelS": 150.5,
+        "last": 129,
+        "travelS": 93.0,
         "finished": true,
         "freeFlowS": 49.1,
         "id": 1
@@ -426,11 +451,11 @@
         "kind": "ambulance",
         "call": 2,
         "departS": 85.5,
-        "stoppedRedS": 0.0,
-        "stoppedQueueS": 10.0,
+        "stoppedRedS": 31.0,
+        "stoppedQueueS": 4.0,
         "first": 85,
-        "last": 169,
-        "travelS": 84.9,
+        "last": 189,
+        "travelS": 104.9,
         "finished": true,
         "freeFlowS": 38.0,
         "id": 2
@@ -454,8 +479,9 @@
        "trips": 92,
        "travelTime": 121.3,
        "timeLoss": 59.6,
-       "waiting": 20.2,
-       "speed": 22.3
+       "waiting": 29.6,
+       "speed": 22.3,
+       "waitingWindow": 20.2
       },
       "junctionMaxQueue": {
        "n3_5": 9,
@@ -470,42 +496,47 @@
      "right": {
       "ev_total": 2,
       "ev_unfinished": 0,
-      "ev_travel_mean_s": 91.85,
-      "ev_stopped_red_s": 2.0,
-      "ev_stopped_queue_s": 4.5,
-      "queue_total_mean_veh": 16.760797342192692,
-      "throughput_vph": 1284.0,
+      "ev_travel_mean_s": 97.15,
+      "ev_stopped_red_s": 6.5,
+      "ev_stopped_queue_s": 12.5,
+      "queue_total_mean_veh": 18.285714285714285,
+      "throughput_vph": 1236.0,
       "teleports": 0,
       "collisions": 0,
       "car": {
-       "trips": 97,
-       "travelTime": 124.4,
-       "timeLoss": 60.6,
-       "waiting": 18.1,
-       "speed": 22.3
+       "trips": 95,
+       "travelTime": 124.0,
+       "timeLoss": 61.8,
+       "waiting": 29.2,
+       "speed": 22.0,
+       "waitingWindow": 20.4
       },
       "junctionMaxQueue": {
-       "n0_3": 9,
-       "n3_5": 8,
-       "n3_3": 8,
-       "n0_1": 8,
-       "n3_1": 6,
-       "n0_6": 6
+       "n3_0": 7,
+       "n0_3": 7,
+       "n5_0": 7,
+       "n3_3": 6,
+       "n0_1": 6,
+       "n5_1": 5
       },
       "rules": [
        {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 92,
-        "switches": 3,
-        "extensions": 0,
-        "extendedSeconds": 0.0
-       },
-       {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 9,
-        "extendedSeconds": 163.2,
-        "earlyEnds": 6,
-        "earlyEndSeconds": 80.0
+        "extendedSeconds": 140.6,
+        "earlyEnds": 5,
+        "earlyEndSeconds": 56.0
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1608,
+        "ends": 108,
+        "extends": 0,
+        "greensEnded": 108,
+        "extensions": 0,
+        "extendedSeconds": 0.0,
+        "refused": 0
        }
       ]
      },
@@ -564,11 +595,11 @@
         "kind": "ambulance",
         "call": 2,
         "departS": 110.5,
-        "stoppedRedS": 4.0,
-        "stoppedQueueS": 7.0,
+        "stoppedRedS": 13.0,
+        "stoppedQueueS": 23.0,
         "first": 110,
-        "last": 221,
-        "travelS": 111.2,
+        "last": 231,
+        "travelS": 121.8,
         "finished": true,
         "freeFlowS": 38.9,
         "id": 2
@@ -592,8 +623,9 @@
        "trips": 94,
        "travelTime": 138.4,
        "timeLoss": 75.8,
-       "waiting": 25.8,
-       "speed": 20.0
+       "waiting": 40.3,
+       "speed": 20.0,
+       "waitingWindow": 25.8
       },
       "junctionMaxQueue": {
        "n3_5": 7,
@@ -608,42 +640,47 @@
      "right": {
       "ev_total": 2,
       "ev_unfinished": 0,
-      "ev_travel_mean_s": 114.0,
-      "ev_stopped_red_s": 7.0,
-      "ev_stopped_queue_s": 29.0,
-      "queue_total_mean_veh": 19.14950166112957,
+      "ev_travel_mean_s": 77.0,
+      "ev_stopped_red_s": 0.5,
+      "ev_stopped_queue_s": 10.0,
+      "queue_total_mean_veh": 18.897009966777407,
       "throughput_vph": 1344.0,
       "teleports": 0,
-      "collisions": 0,
+      "collisions": 2,
       "car": {
-       "trips": 101,
-       "travelTime": 141.2,
-       "timeLoss": 73.8,
-       "waiting": 23.5,
-       "speed": 20.7
+       "trips": 102,
+       "travelTime": 139.4,
+       "timeLoss": 72.4,
+       "waiting": 34.7,
+       "speed": 21.1,
+       "waitingWindow": 21.3
       },
       "junctionMaxQueue": {
-       "n3_3": 7,
-       "n0_7": 7,
-       "n5_0": 7,
-       "n0_3": 6,
+       "n0_7": 9,
+       "n3_3": 6,
+       "n3_1": 6,
+       "n0_5": 6,
        "n3_0": 5,
-       "n5_3": 5
+       "n0_3": 5
       },
       "rules": [
        {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 122,
-        "switches": 2,
-        "extensions": 7,
-        "extendedSeconds": 28.0
+        "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
+        "extensions": 10,
+        "extendedSeconds": 157.0,
+        "earlyEnds": 4,
+        "earlyEndSeconds": 46.0
        },
        {
-        "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
-        "extensions": 13,
-        "extendedSeconds": 195.3,
-        "earlyEnds": 5,
-        "earlyEndSeconds": 51.8
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1593,
+        "ends": 121,
+        "extends": 2,
+        "greensEnded": 121,
+        "extensions": 2,
+        "extendedSeconds": 10.0,
+        "refused": 0
        }
       ]
      },
@@ -686,12 +723,12 @@
         "label": "Ambulance 1",
         "kind": "ambulance",
         "call": 1,
-        "departS": 37.5,
+        "departS": 36.5,
         "stoppedRedS": 0.0,
-        "stoppedQueueS": 18.0,
-        "first": 37,
-        "last": 94,
-        "travelS": 58.5,
+        "stoppedQueueS": 17.0,
+        "first": 36,
+        "last": 92,
+        "travelS": 56.0,
         "finished": true,
         "freeFlowS": 18.1,
         "id": 1
@@ -701,12 +738,12 @@
         "label": "Ambulance 2",
         "kind": "ambulance",
         "call": 2,
-        "departS": 112.5,
-        "stoppedRedS": 14.0,
-        "stoppedQueueS": 40.0,
-        "first": 112,
-        "last": 279,
-        "travelS": 169.5,
+        "departS": 110.5,
+        "stoppedRedS": 1.0,
+        "stoppedQueueS": 3.0,
+        "first": 110,
+        "last": 208,
+        "travelS": 98.0,
         "finished": true,
         "freeFlowS": 58.7,
         "id": 2
@@ -730,8 +767,9 @@
        "trips": 83,
        "travelTime": 143.6,
        "timeLoss": 77.9,
-       "waiting": 24.8,
-       "speed": 19.9
+       "waiting": 42.6,
+       "speed": 19.9,
+       "waitingWindow": 24.8
       },
       "junctionMaxQueue": {
        "n5_5": 8,
@@ -746,42 +784,47 @@
      "right": {
       "ev_total": 2,
       "ev_unfinished": 0,
-      "ev_travel_mean_s": 80.1,
+      "ev_travel_mean_s": 87.6,
       "ev_stopped_red_s": 0.0,
-      "ev_stopped_queue_s": 7.5,
-      "queue_total_mean_veh": 17.6843853820598,
-      "throughput_vph": 1128.0,
+      "ev_stopped_queue_s": 11.0,
+      "queue_total_mean_veh": 15.870431893687707,
+      "throughput_vph": 1164.0,
       "teleports": 0,
       "collisions": 0,
       "car": {
-       "trips": 87,
-       "travelTime": 141.8,
-       "timeLoss": 75.2,
-       "waiting": 26.0,
-       "speed": 20.4
+       "trips": 90,
+       "travelTime": 134.2,
+       "timeLoss": 67.9,
+       "waiting": 34.8,
+       "speed": 21.5,
+       "waitingWindow": 22.7
       },
       "junctionMaxQueue": {
-       "n5_5": 13,
-       "n3_0": 5,
+       "n5_5": 8,
        "n3_3": 5,
        "n0_3": 5,
-       "n4_5": 5,
-       "n3_7": 5
+       "n5_3": 5,
+       "n3_0": 4,
+       "n0_5": 4
       },
       "rules": [
        {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 108,
-        "switches": 3,
-        "extensions": 9,
-        "extendedSeconds": 36.0
+        "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
+        "extensions": 3,
+        "extendedSeconds": 44.4,
+        "earlyEnds": 5,
+        "earlyEndSeconds": 65.2
        },
        {
-        "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
-        "extensions": 6,
-        "extendedSeconds": 67.2,
-        "earlyEnds": 6,
-        "earlyEndSeconds": 69.5
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1606,
+        "ends": 110,
+        "extends": 0,
+        "greensEnded": 110,
+        "extensions": 0,
+        "extendedSeconds": 0.0,
+        "refused": 0
        }
       ]
      },
@@ -826,10 +869,10 @@
         "call": 1,
         "departS": 36.5,
         "stoppedRedS": 0.0,
-        "stoppedQueueS": 5.0,
+        "stoppedQueueS": 10.0,
         "first": 36,
-        "last": 102,
-        "travelS": 66.0,
+        "last": 115,
+        "travelS": 79.5,
         "finished": true,
         "freeFlowS": 36.4,
         "id": 1
@@ -839,12 +882,12 @@
         "label": "Ambulance 2",
         "kind": "ambulance",
         "call": 2,
-        "departS": 105.0,
+        "departS": 104.0,
         "stoppedRedS": 0.0,
-        "stoppedQueueS": 10.0,
-        "first": 105,
-        "last": 197,
-        "travelS": 94.2,
+        "stoppedQueueS": 12.0,
+        "first": 104,
+        "last": 199,
+        "travelS": 95.7,
         "finished": true,
         "freeFlowS": 49.1,
         "id": 2
@@ -868,8 +911,9 @@
        "trips": 83,
        "travelTime": 119.4,
        "timeLoss": 62.0,
-       "waiting": 26.2,
-       "speed": 20.6
+       "waiting": 35.1,
+       "speed": 20.6,
+       "waitingWindow": 26.2
       },
       "junctionMaxQueue": {
        "n4_3": 6,
@@ -884,42 +928,47 @@
      "right": {
       "ev_total": 2,
       "ev_unfinished": 0,
-      "ev_travel_mean_s": 86.15,
+      "ev_travel_mean_s": 75.80000000000001,
       "ev_stopped_red_s": 0.0,
-      "ev_stopped_queue_s": 18.0,
-      "queue_total_mean_veh": 14.976744186046512,
-      "throughput_vph": 1200.0,
+      "ev_stopped_queue_s": 9.0,
+      "queue_total_mean_veh": 15.913621262458472,
+      "throughput_vph": 1140.0,
       "teleports": 0,
       "collisions": 0,
       "car": {
-       "trips": 91,
-       "travelTime": 114.8,
-       "timeLoss": 57.5,
-       "waiting": 23.6,
-       "speed": 21.8
+       "trips": 83,
+       "travelTime": 109.1,
+       "timeLoss": 52.6,
+       "waiting": 25.5,
+       "speed": 22.2,
+       "waitingWindow": 20.1
       },
       "junctionMaxQueue": {
-       "n3_1": 7,
-       "n4_3": 6,
-       "n3_3": 6,
-       "n0_3": 5,
-       "n0_5": 5,
-       "n0_6": 5
+       "n0_3": 8,
+       "n4_3": 7,
+       "n3_3": 7,
+       "n3_5": 5,
+       "n4_7": 4,
+       "n3_7": 4
       },
       "rules": [
        {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 88,
-        "switches": 1,
-        "extensions": 0,
-        "extendedSeconds": 0.0
-       },
-       {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 5,
-        "extendedSeconds": 81.4,
-        "earlyEnds": 11,
-        "earlyEndSeconds": 109.5
+        "extendedSeconds": 72.3,
+        "earlyEnds": 5,
+        "earlyEndSeconds": 66.8
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1617,
+        "ends": 99,
+        "extends": 0,
+        "greensEnded": 99,
+        "extensions": 0,
+        "extendedSeconds": 0.0,
+        "refused": 0
        }
       ]
      },
@@ -964,10 +1013,10 @@
         "call": 1,
         "departS": 24.5,
         "stoppedRedS": 0.0,
-        "stoppedQueueS": 2.0,
+        "stoppedQueueS": 10.0,
         "first": 24,
-        "last": 84,
-        "travelS": 60.1,
+        "last": 93,
+        "travelS": 69.4,
         "finished": true,
         "freeFlowS": 36.3,
         "id": 1
@@ -979,10 +1028,10 @@
         "call": 2,
         "departS": 28.0,
         "stoppedRedS": 0.0,
-        "stoppedQueueS": 34.0,
+        "stoppedQueueS": 8.0,
         "first": 28,
-        "last": 139,
-        "travelS": 112.2,
+        "last": 109,
+        "travelS": 82.2,
         "finished": true,
         "freeFlowS": 40.8,
         "id": 2
@@ -1006,8 +1055,9 @@
        "trips": 89,
        "travelTime": 137.7,
        "timeLoss": 71.3,
-       "waiting": 25.3,
-       "speed": 20.9
+       "waiting": 37.2,
+       "speed": 20.9,
+       "waitingWindow": 25.3
       },
       "junctionMaxQueue": {
        "n0_3": 12,
@@ -1022,42 +1072,47 @@
      "right": {
       "ev_total": 2,
       "ev_unfinished": 0,
-      "ev_travel_mean_s": 137.1,
-      "ev_stopped_red_s": 9.5,
-      "ev_stopped_queue_s": 12.5,
-      "queue_total_mean_veh": 17.026578073089702,
-      "throughput_vph": 1284.0,
+      "ev_travel_mean_s": 154.8,
+      "ev_stopped_red_s": 12.0,
+      "ev_stopped_queue_s": 28.5,
+      "queue_total_mean_veh": 19.186046511627907,
+      "throughput_vph": 1200.0,
       "teleports": 0,
-      "collisions": 0,
+      "collisions": 2,
       "car": {
-       "trips": 98,
-       "travelTime": 137.1,
-       "timeLoss": 67.2,
-       "waiting": 19.7,
-       "speed": 22.1
+       "trips": 89,
+       "travelTime": 138.8,
+       "timeLoss": 70.5,
+       "waiting": 33.3,
+       "speed": 21.3,
+       "waitingWindow": 21.4
       },
       "junctionMaxQueue": {
-       "n0_3": 8,
-       "n5_7": 8,
-       "n5_3": 7,
+       "n5_7": 9,
+       "n0_3": 7,
        "n0_1": 7,
-       "n0_5": 6,
-       "n3_3": 5
+       "n0_5": 7,
+       "n3_3": 6,
+       "n5_3": 5
       },
       "rules": [
        {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 99,
-        "switches": 0,
-        "extensions": 2,
-        "extendedSeconds": 8.0
-       },
-       {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 4,
-        "extendedSeconds": 27.9,
+        "extendedSeconds": 48.9,
         "earlyEnds": 6,
-        "earlyEndSeconds": 72.5
+        "earlyEndSeconds": 97.8
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1599,
+        "ends": 117,
+        "extends": 0,
+        "greensEnded": 117,
+        "extensions": 0,
+        "extendedSeconds": 0.0,
+        "refused": 0
        }
       ]
      },
@@ -1101,11 +1156,11 @@
         "kind": "ambulance",
         "call": 1,
         "departS": 36.5,
-        "stoppedRedS": 19.0,
-        "stoppedQueueS": 13.0,
+        "stoppedRedS": 14.0,
+        "stoppedQueueS": 34.0,
         "first": 36,
-        "last": 184,
-        "travelS": 148.0,
+        "last": 179,
+        "travelS": 143.8,
         "finished": true,
         "freeFlowS": 60.7,
         "id": 1
@@ -1116,11 +1171,11 @@
         "kind": "ambulance",
         "call": 2,
         "departS": 110.5,
-        "stoppedRedS": 0.0,
-        "stoppedQueueS": 12.0,
+        "stoppedRedS": 10.0,
+        "stoppedQueueS": 23.0,
         "first": 110,
-        "last": 236,
-        "travelS": 126.2,
+        "last": 275,
+        "travelS": 165.8,
         "finished": true,
         "freeFlowS": 52.8,
         "id": 2
@@ -1144,8 +1199,9 @@
        "trips": 92,
        "travelTime": 147.8,
        "timeLoss": 80.2,
-       "waiting": 27.6,
-       "speed": 20.2
+       "waiting": 42.8,
+       "speed": 20.2,
+       "waitingWindow": 27.6
       },
       "junctionMaxQueue": {
        "n3_5": 7,
@@ -1160,42 +1216,47 @@
      "right": {
       "ev_total": 2,
       "ev_unfinished": 0,
-      "ev_travel_mean_s": 111.65,
-      "ev_stopped_red_s": 18.0,
-      "ev_stopped_queue_s": 10.5,
-      "queue_total_mean_veh": 19.3421926910299,
-      "throughput_vph": 1272.0,
+      "ev_travel_mean_s": 136.3,
+      "ev_stopped_red_s": 16.5,
+      "ev_stopped_queue_s": 31.5,
+      "queue_total_mean_veh": 17.82059800664452,
+      "throughput_vph": 1284.0,
       "teleports": 0,
       "collisions": 0,
       "car": {
-       "trips": 98,
-       "travelTime": 148.5,
-       "timeLoss": 77.7,
-       "waiting": 22.7,
-       "speed": 20.9
+       "trips": 100,
+       "travelTime": 143.7,
+       "timeLoss": 73.6,
+       "waiting": 33.9,
+       "speed": 21.5,
+       "waitingWindow": 20.2
       },
       "junctionMaxQueue": {
-       "n4_7": 7,
-       "n0_6": 7,
+       "n3_3": 8,
+       "n0_3": 6,
        "n3_5": 6,
-       "n0_3": 5,
        "n0_1": 5,
-       "n3_7": 5
+       "n0_6": 5,
+       "n5_0": 5
       },
       "rules": [
        {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 109,
-        "switches": 4,
-        "extensions": 12,
-        "extendedSeconds": 48.0
-       },
-       {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 4,
-        "extendedSeconds": 50.3,
+        "extendedSeconds": 79.5,
         "earlyEnds": 6,
-        "earlyEndSeconds": 66.5
+        "earlyEndSeconds": 118.5
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1604,
+        "ends": 112,
+        "extends": 0,
+        "greensEnded": 112,
+        "extensions": 0,
+        "extendedSeconds": 0.0,
+        "refused": 0
        }
       ]
      },
@@ -1239,11 +1300,11 @@
         "kind": "ambulance",
         "call": 1,
         "departS": 36.5,
-        "stoppedRedS": 26.0,
-        "stoppedQueueS": 18.0,
+        "stoppedRedS": 18.0,
+        "stoppedQueueS": 60.0,
         "first": 36,
-        "last": 186,
-        "travelS": 150.5,
+        "last": 233,
+        "travelS": 197.5,
         "finished": true,
         "freeFlowS": 52.8,
         "id": 1
@@ -1254,11 +1315,11 @@
         "kind": "ambulance",
         "call": 2,
         "departS": 92.0,
-        "stoppedRedS": 10.0,
+        "stoppedRedS": 15.0,
         "stoppedQueueS": 3.0,
         "first": 92,
-        "last": 164,
-        "travelS": 72.8,
+        "last": 166,
+        "travelS": 75.1,
         "finished": true,
         "freeFlowS": 32.5,
         "id": 2
@@ -1272,12 +1333,12 @@
    "aggregate": {
     "queue_total_mean_veh": {
      "left_mean": 28.891,
-     "right_mean": 22.171,
-     "mean_diff": -6.72,
-     "pct": -23.26,
+     "right_mean": 22.349,
+     "mean_diff": -6.542,
+     "pct": -22.64,
      "ci95": [
-      -8.584,
-      -4.959
+      -8.541,
+      -4.669
      ],
      "pairs": 8,
      "better": 8,
@@ -1285,12 +1346,12 @@
     },
     "throughput_vph": {
      "left_mean": 1515.0,
-     "right_mean": 1719.0,
-     "mean_diff": 204.0,
-     "pct": 13.47,
+     "right_mean": 1707.0,
+     "mean_diff": 192.0,
+     "pct": 12.67,
      "ci95": [
-      130.463,
-      280.5
+      124.5,
+      264.0
      ],
      "pairs": 8,
      "better": 8,
@@ -1311,51 +1372,51 @@
     },
     "car_trips": {
      "left_mean": 115.75,
-     "right_mean": 130.25,
-     "mean_diff": 14.5,
-     "pct": 12.53,
+     "right_mean": 130.625,
+     "mean_diff": 14.875,
+     "pct": 12.85,
      "ci95": [
-      8.125,
-      20.875
-     ],
-     "pairs": 8,
-     "better": 7,
-     "worse": 0
-    },
-    "car_travelTime": {
-     "left_mean": 133.762,
-     "right_mean": 129.225,
-     "mean_diff": -4.538,
-     "pct": -3.39,
-     "ci95": [
-      -6.825,
-      -2.55
+      9.375,
+      20.506
      ],
      "pairs": 8,
      "better": 8,
      "worse": 0
     },
+    "car_travelTime": {
+     "left_mean": 133.762,
+     "right_mean": 128.012,
+     "mean_diff": -5.75,
+     "pct": -4.3,
+     "ci95": [
+      -8.763,
+      -2.637
+     ],
+     "pairs": 8,
+     "better": 7,
+     "worse": 1
+    },
     "car_timeLoss": {
      "left_mean": 72.438,
-     "right_mean": 66.112,
-     "mean_diff": -6.325,
-     "pct": -8.73,
+     "right_mean": 65.45,
+     "mean_diff": -6.987,
+     "pct": -9.65,
      "ci95": [
-      -8.775,
-      -4.112
+      -9.375,
+      -4.862
      ],
      "pairs": 8,
      "better": 8,
      "worse": 0
     },
     "car_waiting": {
-     "left_mean": 24.55,
-     "right_mean": 20.613,
-     "mean_diff": -3.937,
-     "pct": -16.04,
+     "left_mean": 37.9,
+     "right_mean": 29.863,
+     "mean_diff": -8.037,
+     "pct": -21.21,
      "ci95": [
-      -4.875,
-      -3.162
+      -9.762,
+      -6.537
      ],
      "pairs": 8,
      "better": 8,
@@ -1363,12 +1424,25 @@
     },
     "car_speed": {
      "left_mean": 20.087,
-     "right_mean": 21.175,
-     "mean_diff": 1.088,
-     "pct": 5.41,
+     "right_mean": 21.362,
+     "mean_diff": 1.275,
+     "pct": 6.35,
      "ci95": [
-      0.7,
-      1.488
+      0.988,
+      1.587
+     ],
+     "pairs": 8,
+     "better": 8,
+     "worse": 0
+    },
+    "car_waitingWindow": {
+     "left_mean": 24.55,
+     "right_mean": 20.175,
+     "mean_diff": -4.375,
+     "pct": -17.82,
+     "ci95": [
+      -5.45,
+      -3.475
      ],
      "pairs": 8,
      "better": 8,
@@ -1392,8 +1466,9 @@
        "trips": 135,
        "travelTime": 140.8,
        "timeLoss": 79.5,
-       "waiting": 27.1,
-       "speed": 19.4
+       "waiting": 43.1,
+       "speed": 19.4,
+       "waitingWindow": 27.1
       },
       "junctionMaxQueue": {
        "n0_5": 10,
@@ -1411,39 +1486,44 @@
       "ev_travel_mean_s": null,
       "ev_stopped_red_s": null,
       "ev_stopped_queue_s": null,
-      "queue_total_mean_veh": 25.348837209302324,
-      "throughput_vph": 2040.0,
+      "queue_total_mean_veh": 27.538205980066444,
+      "throughput_vph": 2088.0,
       "teleports": 0,
       "collisions": 2,
       "car": {
-       "trips": 158,
-       "travelTime": 129.6,
-       "timeLoss": 66.5,
-       "waiting": 20.6,
-       "speed": 21.5
+       "trips": 162,
+       "travelTime": 127.6,
+       "timeLoss": 66.0,
+       "waiting": 31.0,
+       "speed": 21.4,
+       "waitingWindow": 20.8
       },
       "junctionMaxQueue": {
-       "n3_0": 10,
-       "n3_3": 9,
-       "n0_3": 9,
-       "n3_5": 7,
-       "n4_5": 6,
-       "n0_7": 6
+       "n3_3": 11,
+       "n3_0": 9,
+       "n0_3": 8,
+       "n4_5": 8,
+       "n0_5": 7,
+       "n3_5": 7
       },
       "rules": [
-       {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 104,
-        "switches": 12,
-        "extensions": 1,
-        "extendedSeconds": 4.0
-       },
        {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 0,
         "extendedSeconds": 0.0,
         "earlyEnds": 0,
         "earlyEndSeconds": 0.0
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1597,
+        "ends": 115,
+        "extends": 4,
+        "greensEnded": 115,
+        "extensions": 4,
+        "extendedSeconds": 20.0,
+        "refused": 0
        }
       ]
      },
@@ -1468,8 +1548,9 @@
        "trips": 107,
        "travelTime": 129.1,
        "timeLoss": 68.9,
-       "waiting": 23.4,
-       "speed": 20.7
+       "waiting": 34.8,
+       "speed": 20.7,
+       "waitingWindow": 23.4
       },
       "junctionMaxQueue": {
        "n0_3": 8,
@@ -1487,39 +1568,44 @@
       "ev_travel_mean_s": null,
       "ev_stopped_red_s": null,
       "ev_stopped_queue_s": null,
-      "queue_total_mean_veh": 17.877076411960132,
-      "throughput_vph": 1596.0,
+      "queue_total_mean_veh": 17.890365448504983,
+      "throughput_vph": 1632.0,
       "teleports": 0,
-      "collisions": 1,
+      "collisions": 0,
       "car": {
-       "trips": 115,
-       "travelTime": 128.0,
-       "timeLoss": 64.0,
-       "waiting": 20.6,
-       "speed": 21.7
+       "trips": 121,
+       "travelTime": 129.9,
+       "timeLoss": 66.2,
+       "waiting": 29.6,
+       "speed": 21.6,
+       "waitingWindow": 20.1
       },
       "junctionMaxQueue": {
-       "n3_3": 7,
        "n4_3": 6,
-       "n0_1": 6,
-       "n0_5": 6,
-       "n3_5": 6,
-       "n5_5": 6
+       "n3_0": 5,
+       "n3_3": 5,
+       "n5_3": 5,
+       "n5_7": 5,
+       "n0_5": 5
       },
       "rules": [
-       {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 97,
-        "switches": 7,
-        "extensions": 0,
-        "extendedSeconds": 0.0
-       },
        {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 0,
         "extendedSeconds": 0.0,
         "earlyEnds": 0,
         "earlyEndSeconds": 0.0
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1594,
+        "ends": 121,
+        "extends": 1,
+        "greensEnded": 121,
+        "extensions": 1,
+        "extendedSeconds": 5.0,
+        "refused": 0
        }
       ]
      },
@@ -1544,8 +1630,9 @@
        "trips": 129,
        "travelTime": 128.3,
        "timeLoss": 68.6,
-       "waiting": 22.9,
-       "speed": 20.0
+       "waiting": 35.1,
+       "speed": 20.0,
+       "waitingWindow": 22.9
       },
       "junctionMaxQueue": {
        "n0_5": 18,
@@ -1563,39 +1650,44 @@
       "ev_travel_mean_s": null,
       "ev_stopped_red_s": null,
       "ev_stopped_queue_s": null,
-      "queue_total_mean_veh": 26.53488372093023,
-      "throughput_vph": 1848.0,
+      "queue_total_mean_veh": 25.471760797342192,
+      "throughput_vph": 1908.0,
       "teleports": 0,
-      "collisions": 4,
+      "collisions": 2,
       "car": {
-       "trips": 138,
-       "travelTime": 123.8,
-       "timeLoss": 62.9,
-       "waiting": 18.8,
-       "speed": 21.1
+       "trips": 143,
+       "travelTime": 122.7,
+       "timeLoss": 62.6,
+       "waiting": 26.6,
+       "speed": 21.4,
+       "waitingWindow": 18.4
       },
       "junctionMaxQueue": {
-       "n0_5": 14,
-       "n3_3": 13,
-       "n3_0": 10,
-       "n4_3": 7,
-       "n0_7": 7,
-       "n5_7": 7
+       "n3_0": 13,
+       "n0_5": 12,
+       "n3_3": 10,
+       "n3_5": 9,
+       "n0_3": 9,
+       "n4_3": 9
       },
       "rules": [
-       {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 91,
-        "switches": 15,
-        "extensions": 10,
-        "extendedSeconds": 40.0
-       },
        {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 0,
         "extendedSeconds": 0.0,
         "earlyEnds": 0,
         "earlyEndSeconds": 0.0
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1574,
+        "ends": 119,
+        "extends": 23,
+        "greensEnded": 119,
+        "extensions": 23,
+        "extendedSeconds": 110.5,
+        "refused": 0
        }
       ]
      },
@@ -1620,8 +1712,9 @@
        "trips": 116,
        "travelTime": 133.0,
        "timeLoss": 72.8,
-       "waiting": 24.1,
-       "speed": 19.7
+       "waiting": 38.1,
+       "speed": 19.7,
+       "waitingWindow": 24.1
       },
       "junctionMaxQueue": {
        "n3_5": 11,
@@ -1639,39 +1732,44 @@
       "ev_travel_mean_s": null,
       "ev_stopped_red_s": null,
       "ev_stopped_queue_s": null,
-      "queue_total_mean_veh": 21.249169435215947,
-      "throughput_vph": 1680.0,
+      "queue_total_mean_veh": 20.827242524916944,
+      "throughput_vph": 1728.0,
       "teleports": 0,
       "collisions": 0,
       "car": {
-       "trips": 130,
-       "travelTime": 128.0,
-       "timeLoss": 65.1,
-       "waiting": 20.0,
-       "speed": 20.9
+       "trips": 134,
+       "travelTime": 132.5,
+       "timeLoss": 68.8,
+       "waiting": 31.1,
+       "speed": 20.7,
+       "waitingWindow": 20.2
       },
       "junctionMaxQueue": {
-       "n3_5": 8,
-       "n3_3": 8,
-       "n0_1": 8,
-       "n3_0": 7,
-       "n0_3": 7,
-       "n4_7": 7
+       "n3_3": 9,
+       "n0_3": 8,
+       "n5_7": 8,
+       "n4_7": 7,
+       "n3_7": 7,
+       "n3_5": 7
       },
       "rules": [
-       {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 118,
-        "switches": 4,
-        "extensions": 0,
-        "extendedSeconds": 0.0
-       },
        {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 0,
         "extendedSeconds": 0.0,
         "earlyEnds": 0,
         "earlyEndSeconds": 0.0
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1594,
+        "ends": 118,
+        "extends": 4,
+        "greensEnded": 118,
+        "extensions": 4,
+        "extendedSeconds": 20.0,
+        "refused": 0
        }
       ]
      },
@@ -1696,8 +1794,9 @@
        "trips": 100,
        "travelTime": 138.7,
        "timeLoss": 76.8,
-       "waiting": 25.8,
-       "speed": 19.7
+       "waiting": 41.3,
+       "speed": 19.7,
+       "waitingWindow": 25.8
       },
       "junctionMaxQueue": {
        "n0_5": 14,
@@ -1715,39 +1814,44 @@
       "ev_travel_mean_s": null,
       "ev_stopped_red_s": null,
       "ev_stopped_queue_s": null,
-      "queue_total_mean_veh": 18.664451827242527,
-      "throughput_vph": 1668.0,
+      "queue_total_mean_veh": 19.823920265780732,
+      "throughput_vph": 1584.0,
       "teleports": 0,
-      "collisions": 2,
+      "collisions": 0,
       "car": {
-       "trips": 131,
-       "travelTime": 132.7,
-       "timeLoss": 66.9,
-       "waiting": 20.8,
-       "speed": 21.5
+       "trips": 127,
+       "travelTime": 133.0,
+       "timeLoss": 67.6,
+       "waiting": 30.5,
+       "speed": 21.5,
+       "waitingWindow": 18.7
       },
       "junctionMaxQueue": {
-       "n3_3": 8,
-       "n0_1": 7,
-       "n0_5": 6,
-       "n3_5": 6,
+       "n3_3": 9,
+       "n5_3": 7,
+       "n0_3": 7,
+       "n0_5": 7,
        "n0_0": 6,
-       "n3_0": 6
+       "n0_7": 6
       },
       "rules": [
-       {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 104,
-        "switches": 6,
-        "extensions": 5,
-        "extendedSeconds": 20.0
-       },
        {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 0,
         "extendedSeconds": 0.0,
         "earlyEnds": 0,
         "earlyEndSeconds": 0.0
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1590,
+        "ends": 123,
+        "extends": 3,
+        "greensEnded": 123,
+        "extensions": 3,
+        "extendedSeconds": 15.0,
+        "refused": 0
        }
       ]
      },
@@ -1772,8 +1876,9 @@
        "trips": 115,
        "travelTime": 125.2,
        "timeLoss": 65.4,
-       "waiting": 23.2,
-       "speed": 21.0
+       "waiting": 33.3,
+       "speed": 21.0,
+       "waitingWindow": 23.2
       },
       "junctionMaxQueue": {
        "n0_5": 14,
@@ -1791,39 +1896,44 @@
       "ev_travel_mean_s": null,
       "ev_stopped_red_s": null,
       "ev_stopped_queue_s": null,
-      "queue_total_mean_veh": 21.62126245847176,
-      "throughput_vph": 1788.0,
+      "queue_total_mean_veh": 20.232558139534884,
+      "throughput_vph": 1596.0,
       "teleports": 0,
-      "collisions": 0,
+      "collisions": 2,
       "car": {
-       "trips": 135,
-       "travelTime": 124.0,
-       "timeLoss": 62.5,
-       "waiting": 20.7,
-       "speed": 21.8
+       "trips": 121,
+       "travelTime": 117.1,
+       "timeLoss": 56.7,
+       "waiting": 26.1,
+       "speed": 22.5,
+       "waitingWindow": 20.0
       },
       "junctionMaxQueue": {
-       "n3_3": 9,
-       "n4_3": 8,
-       "n5_7": 8,
+       "n3_0": 9,
+       "n4_3": 9,
+       "n3_3": 7,
        "n3_7": 7,
-       "n0_3": 6,
-       "n5_3": 6
+       "n3_1": 7,
+       "n0_3": 6
       },
       "rules": [
-       {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 93,
-        "switches": 13,
-        "extensions": 2,
-        "extendedSeconds": 8.0
-       },
        {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 0,
         "extendedSeconds": 0.0,
         "earlyEnds": 0,
         "earlyEndSeconds": 0.0
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1589,
+        "ends": 124,
+        "extends": 3,
+        "greensEnded": 124,
+        "extensions": 3,
+        "extendedSeconds": 15.0,
+        "refused": 0
        }
       ]
      },
@@ -1848,8 +1958,9 @@
        "trips": 121,
        "travelTime": 129.9,
        "timeLoss": 68.5,
-       "waiting": 24.0,
-       "speed": 20.4
+       "waiting": 34.5,
+       "speed": 20.4,
+       "waitingWindow": 24.0
       },
       "junctionMaxQueue": {
        "n0_5": 15,
@@ -1867,39 +1978,44 @@
       "ev_travel_mean_s": null,
       "ev_stopped_red_s": null,
       "ev_stopped_queue_s": null,
-      "queue_total_mean_veh": 23.299003322259136,
-      "throughput_vph": 1740.0,
+      "queue_total_mean_veh": 24.651162790697676,
+      "throughput_vph": 1692.0,
       "teleports": 0,
       "collisions": 0,
       "car": {
-       "trips": 132,
-       "travelTime": 128.4,
-       "timeLoss": 66.2,
-       "waiting": 20.9,
-       "speed": 20.8
+       "trips": 130,
+       "travelTime": 126.3,
+       "timeLoss": 64.4,
+       "waiting": 29.3,
+       "speed": 21.2,
+       "waitingWindow": 20.8
       },
       "junctionMaxQueue": {
-       "n0_5": 12,
-       "n0_1": 8,
-       "n3_3": 7,
-       "n0_3": 7,
-       "n5_1": 7,
-       "n5_5": 6
+       "n3_3": 11,
+       "n0_3": 10,
+       "n0_5": 9,
+       "n0_1": 7,
+       "n5_3": 7,
+       "n0_7": 7
       },
       "rules": [
-       {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 109,
-        "switches": 8,
-        "extensions": 5,
-        "extendedSeconds": 20.0
-       },
        {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 0,
         "extendedSeconds": 0.0,
         "earlyEnds": 0,
         "earlyEndSeconds": 0.0
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1579,
+        "ends": 129,
+        "extends": 8,
+        "greensEnded": 129,
+        "extensions": 8,
+        "extendedSeconds": 35.5,
+        "refused": 0
        }
       ]
      },
@@ -1924,8 +2040,9 @@
        "trips": 103,
        "travelTime": 145.1,
        "timeLoss": 79.0,
-       "waiting": 25.9,
-       "speed": 19.8
+       "waiting": 43.0,
+       "speed": 19.8,
+       "waitingWindow": 25.9
       },
       "junctionMaxQueue": {
        "n3_5": 10,
@@ -1943,39 +2060,44 @@
       "ev_travel_mean_s": null,
       "ev_stopped_red_s": null,
       "ev_stopped_queue_s": null,
-      "queue_total_mean_veh": 22.770764119601328,
-      "throughput_vph": 1392.0,
+      "queue_total_mean_veh": 22.358803986710964,
+      "throughput_vph": 1428.0,
       "teleports": 0,
       "collisions": 0,
       "car": {
-       "trips": 103,
-       "travelTime": 139.3,
-       "timeLoss": 74.8,
-       "waiting": 22.5,
-       "speed": 20.1
+       "trips": 107,
+       "travelTime": 135.0,
+       "timeLoss": 71.3,
+       "waiting": 34.7,
+       "speed": 20.6,
+       "waitingWindow": 22.4
       },
       "junctionMaxQueue": {
-       "n3_3": 11,
-       "n3_5": 8,
+       "n3_3": 14,
+       "n5_7": 9,
+       "n3_1": 8,
        "n0_5": 8,
-       "n5_3": 7,
-       "n5_7": 7,
-       "n4_3": 6
+       "n5_5": 6,
+       "n3_5": 6
       },
       "rules": [
-       {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 111,
-        "switches": 6,
-        "extensions": 8,
-        "extendedSeconds": 32.0
-       },
        {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 0,
         "extendedSeconds": 0.0,
         "earlyEnds": 0,
         "earlyEndSeconds": 0.0
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1586,
+        "ends": 126,
+        "extends": 4,
+        "greensEnded": 126,
+        "extensions": 4,
+        "extendedSeconds": 20.0,
+        "refused": 0
        }
       ]
      },
@@ -1990,25 +2112,25 @@
    "aggregate": {
     "ev_travel_mean_s": {
      "left_mean": 100.794,
-     "right_mean": 81.825,
-     "mean_diff": -18.969,
-     "pct": -18.82,
+     "right_mean": 90.95,
+     "mean_diff": -9.844,
+     "pct": -9.77,
      "ci95": [
-      -31.584,
-      -9.3
+      -21.05,
+      -1.5
      ],
      "pairs": 8,
-     "better": 8,
-     "worse": 0
+     "better": 7,
+     "worse": 1
     },
     "ev_stopped_red_s": {
      "left_mean": 8.75,
-     "right_mean": 2.312,
-     "mean_diff": -6.438,
-     "pct": -73.57,
+     "right_mean": 3.125,
+     "mean_diff": -5.625,
+     "pct": -64.29,
      "ci95": [
-      -15.25,
-      0.875
+      -12.125,
+      -0.497
      ],
      "pairs": 8,
      "better": 5,
@@ -2016,25 +2138,25 @@
     },
     "ev_stopped_queue_s": {
      "left_mean": 14.875,
-     "right_mean": 8.125,
-     "mean_diff": -6.75,
-     "pct": -45.38,
+     "right_mean": 12.625,
+     "mean_diff": -2.25,
+     "pct": -15.13,
      "ci95": [
-      -14.5,
-      1.875
+      -8.375,
+      3.378
      ],
      "pairs": 8,
-     "better": 6,
-     "worse": 1
+     "better": 5,
+     "worse": 3
     },
     "queue_total_mean_veh": {
      "left_mean": 21.348,
-     "right_mean": 17.875,
-     "mean_diff": -3.473,
-     "pct": -16.27,
+     "right_mean": 17.628,
+     "mean_diff": -3.72,
+     "pct": -17.42,
      "ci95": [
-      -4.113,
-      -2.795
+      -4.087,
+      -3.36
      ],
      "pairs": 8,
      "better": 8,
@@ -2042,16 +2164,16 @@
     },
     "throughput_vph": {
      "left_mean": 1212.0,
-     "right_mean": 1275.0,
-     "mean_diff": 63.0,
-     "pct": 5.2,
+     "right_mean": 1323.0,
+     "mean_diff": 111.0,
+     "pct": 9.16,
      "ci95": [
-      9.0,
-      120.0
+      67.5,
+      162.0
      ],
      "pairs": 8,
-     "better": 6,
-     "worse": 2
+     "better": 8,
+     "worse": 0
     },
     "teleports": {
      "left_mean": 0.0,
@@ -2068,51 +2190,51 @@
     },
     "car_trips": {
      "left_mean": 92.0,
-     "right_mean": 96.75,
-     "mean_diff": 4.75,
-     "pct": 5.16,
+     "right_mean": 100.25,
+     "mean_diff": 8.25,
+     "pct": 8.97,
      "ci95": [
-      0.75,
-      8.75
+      4.875,
+      12.625
+     ],
+     "pairs": 8,
+     "better": 8,
+     "worse": 0
+    },
+    "car_travelTime": {
+     "left_mean": 136.65,
+     "right_mean": 132.613,
+     "mean_diff": -4.037,
+     "pct": -2.95,
+     "ci95": [
+      -8.237,
+      0.076
      ],
      "pairs": 8,
      "better": 6,
      "worse": 2
     },
-    "car_travelTime": {
-     "left_mean": 136.65,
-     "right_mean": 132.912,
-     "mean_diff": -3.738,
-     "pct": -2.74,
+    "car_timeLoss": {
+     "left_mean": 71.95,
+     "right_mean": 66.787,
+     "mean_diff": -5.162,
+     "pct": -7.18,
      "ci95": [
-      -6.2,
-      -1.513
+      -8.5,
+      -2.099
      ],
      "pairs": 8,
      "better": 7,
      "worse": 1
     },
-    "car_timeLoss": {
-     "left_mean": 71.95,
-     "right_mean": 67.45,
-     "mean_diff": -4.5,
-     "pct": -6.25,
-     "ci95": [
-      -6.788,
-      -2.225
-     ],
-     "pairs": 8,
-     "better": 7,
-     "worse": 0
-    },
     "car_waiting": {
-     "left_mean": 24.825,
-     "right_mean": 21.338,
-     "mean_diff": -3.487,
-     "pct": -14.05,
+     "left_mean": 37.962,
+     "right_mean": 31.238,
+     "mean_diff": -6.725,
+     "pct": -17.71,
      "ci95": [
-      -4.838,
-      -2.15
+      -8.375,
+      -5.2
      ],
      "pairs": 8,
      "better": 8,
@@ -2120,16 +2242,29 @@
     },
     "car_speed": {
      "left_mean": 20.65,
-     "right_mean": 21.513,
-     "mean_diff": 0.863,
-     "pct": 4.18,
+     "right_mean": 21.725,
+     "mean_diff": 1.075,
+     "pct": 5.21,
      "ci95": [
-      0.463,
-      1.212
+      0.763,
+      1.425
      ],
      "pairs": 8,
-     "better": 7,
-     "worse": 1
+     "better": 8,
+     "worse": 0
+    },
+    "car_waitingWindow": {
+     "left_mean": 24.825,
+     "right_mean": 20.5,
+     "mean_diff": -4.325,
+     "pct": -17.42,
+     "ci95": [
+      -4.762,
+      -3.9
+     ],
+     "pairs": 8,
+     "better": 8,
+     "worse": 0
     }
    },
    "perSeed": [
@@ -2149,8 +2284,9 @@
        "trips": 91,
        "travelTime": 151.2,
        "timeLoss": 79.9,
-       "waiting": 26.5,
-       "speed": 20.4
+       "waiting": 42.1,
+       "speed": 20.4,
+       "waitingWindow": 26.5
       },
       "junctionMaxQueue": {
        "n0_3": 9,
@@ -2165,42 +2301,47 @@
      "right": {
       "ev_total": 1,
       "ev_unfinished": 0,
-      "ev_travel_mean_s": 107.0,
-      "ev_stopped_red_s": 0.0,
-      "ev_stopped_queue_s": 29.0,
-      "queue_total_mean_veh": 18.016611295681063,
-      "throughput_vph": 1344.0,
+      "ev_travel_mean_s": 125.0,
+      "ev_stopped_red_s": 19.0,
+      "ev_stopped_queue_s": 22.0,
+      "queue_total_mean_veh": 18.823920265780732,
+      "throughput_vph": 1404.0,
       "teleports": 0,
       "collisions": 0,
       "car": {
-       "trips": 106,
-       "travelTime": 143.2,
-       "timeLoss": 70.9,
-       "waiting": 20.4,
-       "speed": 21.9
+       "trips": 112,
+       "travelTime": 142.4,
+       "timeLoss": 72.5,
+       "waiting": 35.0,
+       "speed": 21.2,
+       "waitingWindow": 22.2
       },
       "junctionMaxQueue": {
-       "n0_5": 9,
        "n3_3": 7,
-       "n3_6": 6,
-       "n0_3": 6,
-       "n3_5": 5,
-       "n3_0": 5
+       "n0_3": 7,
+       "n0_5": 6,
+       "n3_0": 6,
+       "n5_3": 6,
+       "n3_5": 6
       },
       "rules": [
        {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 105,
-        "switches": 4,
-        "extensions": 0,
-        "extendedSeconds": 0.0
-       },
-       {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 1,
-        "extendedSeconds": 12.8,
-        "earlyEnds": 6,
-        "earlyEndSeconds": 47.2
+        "extendedSeconds": 6.7,
+        "earlyEnds": 4,
+        "earlyEndSeconds": 31.2
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1596,
+        "ends": 120,
+        "extends": 0,
+        "greensEnded": 120,
+        "extensions": 0,
+        "extendedSeconds": 0.0,
+        "refused": 0
        }
       ]
      },
@@ -2228,15 +2369,15 @@
         "label": "Police unit",
         "kind": "responder",
         "call": null,
-        "departS": 77.5,
-        "stoppedRedS": 0.0,
-        "stoppedQueueS": 29.0,
-        "first": 77,
-        "last": 162,
-        "travelS": 107.0,
+        "departS": 73.5,
+        "stoppedRedS": 19.0,
+        "stoppedQueueS": 22.0,
+        "first": 73,
+        "last": 180,
+        "travelS": 125.0,
         "finished": true,
         "freeFlowS": null,
-        "id": 85
+        "id": 87
        }
       ]
      }
@@ -2257,8 +2398,9 @@
        "trips": 89,
        "travelTime": 136.3,
        "timeLoss": 69.0,
-       "waiting": 21.5,
-       "speed": 21.5
+       "waiting": 34.2,
+       "speed": 21.5,
+       "waitingWindow": 21.5
       },
       "junctionMaxQueue": {
        "n5_3": 6,
@@ -2273,42 +2415,47 @@
      "right": {
       "ev_total": 1,
       "ev_unfinished": 0,
-      "ev_travel_mean_s": 81.1,
-      "ev_stopped_red_s": 0.0,
-      "ev_stopped_queue_s": 2.0,
-      "queue_total_mean_veh": 13.960132890365449,
-      "throughput_vph": 1344.0,
+      "ev_travel_mean_s": 93.4,
+      "ev_stopped_red_s": 3.0,
+      "ev_stopped_queue_s": 3.0,
+      "queue_total_mean_veh": 13.39202657807309,
+      "throughput_vph": 1296.0,
       "teleports": 0,
       "collisions": 0,
       "car": {
-       "trips": 99,
-       "travelTime": 135.2,
-       "timeLoss": 67.9,
-       "waiting": 20.3,
-       "speed": 22.1
+       "trips": 95,
+       "travelTime": 128.4,
+       "timeLoss": 61.2,
+       "waiting": 25.4,
+       "speed": 22.9,
+       "waitingWindow": 17.2
       },
       "junctionMaxQueue": {
-       "n0_3": 5,
-       "n0_1": 5,
-       "n4_7": 5,
-       "n0_5": 5,
-       "n3_3": 4,
-       "n5_3": 4
+       "n0_3": 6,
+       "n5_3": 5,
+       "n5_1": 5,
+       "n3_7": 5,
+       "n5_7": 5,
+       "n3_3": 4
       },
       "rules": [
        {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 101,
-        "switches": 0,
+        "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 0,
-        "extendedSeconds": 0.0
+        "extendedSeconds": 0.0,
+        "earlyEnds": 1,
+        "earlyEndSeconds": 27.2
        },
        {
-        "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
-        "extensions": 1,
-        "extendedSeconds": 7.4,
-        "earlyEnds": 2,
-        "earlyEndSeconds": 31.0
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1602,
+        "ends": 114,
+        "extends": 0,
+        "greensEnded": 114,
+        "extensions": 0,
+        "extendedSeconds": 0.0,
+        "refused": 0
        }
       ]
      },
@@ -2336,12 +2483,12 @@
         "label": "Police unit",
         "kind": "responder",
         "call": null,
-        "departS": 83.5,
-        "stoppedRedS": 0.0,
-        "stoppedQueueS": 2.0,
-        "first": 83,
-        "last": 146,
-        "travelS": 81.1,
+        "departS": 80.5,
+        "stoppedRedS": 3.0,
+        "stoppedQueueS": 3.0,
+        "first": 80,
+        "last": 158,
+        "travelS": 93.4,
         "finished": true,
         "freeFlowS": null,
         "id": 1
@@ -2365,8 +2512,9 @@
        "trips": 97,
        "travelTime": 131.2,
        "timeLoss": 69.6,
-       "waiting": 23.8,
-       "speed": 21.0
+       "waiting": 36.0,
+       "speed": 21.0,
+       "waitingWindow": 23.8
       },
       "junctionMaxQueue": {
        "n0_5": 10,
@@ -2381,42 +2529,47 @@
      "right": {
       "ev_total": 2,
       "ev_unfinished": 0,
-      "ev_travel_mean_s": 83.25,
-      "ev_stopped_red_s": 10.5,
-      "ev_stopped_queue_s": 8.5,
-      "queue_total_mean_veh": 21.132890365448507,
-      "throughput_vph": 1236.0,
+      "ev_travel_mean_s": 87.9,
+      "ev_stopped_red_s": 0.0,
+      "ev_stopped_queue_s": 20.0,
+      "queue_total_mean_veh": 20.0531561461794,
+      "throughput_vph": 1392.0,
       "teleports": 0,
       "collisions": 0,
       "car": {
-       "trips": 92,
-       "travelTime": 126.1,
-       "timeLoss": 64.1,
-       "waiting": 19.1,
-       "speed": 21.9
+       "trips": 105,
+       "travelTime": 129.9,
+       "timeLoss": 65.3,
+       "waiting": 30.1,
+       "speed": 22.0,
+       "waitingWindow": 18.8
       },
       "junctionMaxQueue": {
-       "n3_3": 9,
-       "n3_6": 9,
-       "n3_5": 8,
-       "n4_5": 6,
-       "n3_0": 6,
-       "n0_3": 6
+       "n3_6": 12,
+       "n3_0": 9,
+       "n3_3": 8,
+       "n5_0": 6,
+       "n0_3": 5,
+       "n0_7": 5
       },
       "rules": [
        {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 88,
-        "switches": 9,
-        "extensions": 7,
-        "extendedSeconds": 28.0
+        "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
+        "extensions": 4,
+        "extendedSeconds": 53.9,
+        "earlyEnds": 4,
+        "earlyEndSeconds": 71.5
        },
        {
-        "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
-        "extensions": 5,
-        "extendedSeconds": 61.4,
-        "earlyEnds": 3,
-        "earlyEndSeconds": 44.8
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1602,
+        "ends": 112,
+        "extends": 2,
+        "greensEnded": 112,
+        "extensions": 2,
+        "extendedSeconds": 10.0,
+        "refused": 0
        }
       ]
      },
@@ -2461,10 +2614,10 @@
         "call": null,
         "departS": 105.0,
         "stoppedRedS": 0.0,
-        "stoppedQueueS": 2.0,
+        "stoppedQueueS": 20.0,
         "first": 105,
-        "last": 133,
-        "travelS": 50.5,
+        "last": 160,
+        "travelS": 77.8,
         "finished": true,
         "freeFlowS": null,
         "id": 1
@@ -2474,12 +2627,12 @@
         "label": "Paramedics",
         "kind": "responder",
         "call": null,
-        "departS": 107.5,
-        "stoppedRedS": 21.0,
-        "stoppedQueueS": 15.0,
-        "first": 107,
-        "last": 198,
-        "travelS": 116.0,
+        "departS": 105.0,
+        "stoppedRedS": 0.0,
+        "stoppedQueueS": 20.0,
+        "first": 105,
+        "last": 180,
+        "travelS": 98.0,
         "finished": true,
         "freeFlowS": null,
         "id": 2
@@ -2503,8 +2656,9 @@
        "trips": 100,
        "travelTime": 135.0,
        "timeLoss": 72.4,
-       "waiting": 26.5,
-       "speed": 20.0
+       "waiting": 39.2,
+       "speed": 20.0,
+       "waitingWindow": 26.5
       },
       "junctionMaxQueue": {
        "n0_5": 9,
@@ -2519,42 +2673,47 @@
      "right": {
       "ev_total": 2,
       "ev_unfinished": 0,
-      "ev_travel_mean_s": 78.7,
-      "ev_stopped_red_s": 7.5,
-      "ev_stopped_queue_s": 5.5,
-      "queue_total_mean_veh": 18.770764119601328,
-      "throughput_vph": 1332.0,
+      "ev_travel_mean_s": 76.30000000000001,
+      "ev_stopped_red_s": 0.0,
+      "ev_stopped_queue_s": 12.0,
+      "queue_total_mean_veh": 18.857142857142858,
+      "throughput_vph": 1392.0,
       "teleports": 0,
-      "collisions": 4,
+      "collisions": 0,
       "car": {
-       "trips": 103,
-       "travelTime": 133.8,
-       "timeLoss": 67.1,
-       "waiting": 20.5,
-       "speed": 21.5
+       "trips": 104,
+       "travelTime": 138.5,
+       "timeLoss": 71.4,
+       "waiting": 34.1,
+       "speed": 21.0,
+       "waitingWindow": 21.3
       },
       "junctionMaxQueue": {
-       "n3_3": 9,
-       "n3_5": 8,
-       "n4_3": 7,
+       "n3_3": 7,
+       "n0_7": 7,
+       "n3_5": 7,
        "n0_3": 6,
-       "n5_3": 6,
-       "n3_7": 6
+       "n3_0": 5,
+       "n3_7": 5
       },
       "rules": [
        {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 106,
-        "switches": 0,
-        "extensions": 0,
-        "extendedSeconds": 0.0
+        "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
+        "extensions": 6,
+        "extendedSeconds": 91.4,
+        "earlyEnds": 3,
+        "earlyEndSeconds": 57.2
        },
        {
-        "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
-        "extensions": 7,
-        "extendedSeconds": 94.2,
-        "earlyEnds": 4,
-        "earlyEndSeconds": 40.5
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1589,
+        "ends": 126,
+        "extends": 1,
+        "greensEnded": 126,
+        "extensions": 1,
+        "extendedSeconds": 5.0,
+        "refused": 0
        }
       ]
      },
@@ -2593,21 +2752,6 @@
       ],
       "right": [
        {
-        "vid": "resp0_john_s2",
-        "label": "Police unit",
-        "kind": "responder",
-        "call": null,
-        "departS": 65.0,
-        "stoppedRedS": 15.0,
-        "stoppedQueueS": 10.0,
-        "first": 65,
-        "last": 130,
-        "travelS": 83.2,
-        "finished": true,
-        "freeFlowS": null,
-        "id": 1
-       },
-       {
         "vid": "resp1_john_s2",
         "label": "Paramedics",
         "kind": "responder",
@@ -2616,8 +2760,23 @@
         "stoppedRedS": 0.0,
         "stoppedQueueS": 1.0,
         "first": 65,
-        "last": 121,
-        "travelS": 74.2,
+        "last": 112,
+        "travelS": 65.2,
+        "finished": true,
+        "freeFlowS": null,
+        "id": 1
+       },
+       {
+        "vid": "resp0_john_s2",
+        "label": "Police unit",
+        "kind": "responder",
+        "call": null,
+        "departS": 66.5,
+        "stoppedRedS": 0.0,
+        "stoppedQueueS": 23.0,
+        "first": 66,
+        "last": 135,
+        "travelS": 87.4,
         "finished": true,
         "freeFlowS": null,
         "id": 2
@@ -2641,8 +2800,9 @@
        "trips": 90,
        "travelTime": 141.2,
        "timeLoss": 76.0,
-       "waiting": 24.7,
-       "speed": 20.2
+       "waiting": 40.9,
+       "speed": 20.2,
+       "waitingWindow": 24.7
       },
       "junctionMaxQueue": {
        "n3_3": 11,
@@ -2657,42 +2817,47 @@
      "right": {
       "ev_total": 1,
       "ev_unfinished": 0,
-      "ev_travel_mean_s": 82.1,
-      "ev_stopped_red_s": 0.0,
-      "ev_stopped_queue_s": 2.0,
-      "queue_total_mean_veh": 16.19933554817276,
-      "throughput_vph": 1272.0,
+      "ev_travel_mean_s": 89.4,
+      "ev_stopped_red_s": 3.0,
+      "ev_stopped_queue_s": 3.0,
+      "queue_total_mean_veh": 17.51827242524917,
+      "throughput_vph": 1200.0,
       "teleports": 0,
-      "collisions": 2,
+      "collisions": 0,
       "car": {
-       "trips": 97,
-       "travelTime": 131.5,
-       "timeLoss": 66.8,
-       "waiting": 21.7,
-       "speed": 21.4
+       "trips": 91,
+       "travelTime": 125.9,
+       "timeLoss": 61.6,
+       "waiting": 29.9,
+       "speed": 22.3,
+       "waitingWindow": 19.8
       },
       "junctionMaxQueue": {
-       "n3_3": 6,
+       "n3_3": 7,
        "n0_3": 6,
-       "n0_5": 5,
+       "n5_3": 5,
        "n0_7": 5,
-       "n0_0": 5,
-       "n3_0": 4
+       "n3_7": 5,
+       "n5_6": 4
       },
       "rules": [
        {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 95,
-        "switches": 4,
-        "extensions": 0,
-        "extendedSeconds": 0.0
+        "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
+        "extensions": 2,
+        "extendedSeconds": 39.7,
+        "earlyEnds": 5,
+        "earlyEndSeconds": 27.8
        },
        {
-        "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
-        "extensions": 3,
-        "extendedSeconds": 43.4,
-        "earlyEnds": 4,
-        "earlyEndSeconds": 41.2
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1602,
+        "ends": 114,
+        "extends": 0,
+        "greensEnded": 114,
+        "extensions": 0,
+        "extendedSeconds": 0.0,
+        "refused": 0
        }
       ]
      },
@@ -2721,11 +2886,11 @@
         "kind": "responder",
         "call": null,
         "departS": 70.0,
-        "stoppedRedS": 0.0,
-        "stoppedQueueS": 2.0,
+        "stoppedRedS": 3.0,
+        "stoppedQueueS": 3.0,
         "first": 70,
-        "last": 132,
-        "travelS": 82.1,
+        "last": 139,
+        "travelS": 89.4,
         "finished": true,
         "freeFlowS": null,
         "id": 1
@@ -2749,8 +2914,9 @@
        "trips": 86,
        "travelTime": 114.5,
        "timeLoss": 59.9,
-       "waiting": 24.6,
-       "speed": 20.9
+       "waiting": 33.5,
+       "speed": 20.9,
+       "waitingWindow": 24.6
       },
       "junctionMaxQueue": {
        "n3_3": 7,
@@ -2765,42 +2931,47 @@
      "right": {
       "ev_total": 1,
       "ev_unfinished": 0,
-      "ev_travel_mean_s": 81.4,
+      "ev_travel_mean_s": 87.4,
       "ev_stopped_red_s": 0.0,
-      "ev_stopped_queue_s": 12.0,
-      "queue_total_mean_veh": 16.023255813953487,
-      "throughput_vph": 1152.0,
+      "ev_stopped_queue_s": 15.0,
+      "queue_total_mean_veh": 15.225913621262459,
+      "throughput_vph": 1248.0,
       "teleports": 0,
       "collisions": 2,
       "car": {
-       "trips": 85,
-       "travelTime": 110.5,
-       "timeLoss": 55.1,
-       "waiting": 21.3,
-       "speed": 21.9
+       "trips": 93,
+       "travelTime": 111.4,
+       "timeLoss": 55.2,
+       "waiting": 27.0,
+       "speed": 22.1,
+       "waitingWindow": 20.8
       },
       "junctionMaxQueue": {
-       "n3_5": 9,
-       "n3_3": 7,
-       "n3_7": 6,
-       "n0_6": 6,
+       "n0_3": 7,
        "n4_7": 5,
-       "n0_3": 5
+       "n3_3": 5,
+       "n3_7": 5,
+       "n5_3": 5,
+       "n3_5": 5
       },
       "rules": [
        {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 86,
-        "switches": 3,
-        "extensions": 0,
-        "extendedSeconds": 0.0
+        "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
+        "extensions": 1,
+        "extendedSeconds": 20.0,
+        "earlyEnds": 3,
+        "earlyEndSeconds": 56.8
        },
        {
-        "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
-        "extensions": 3,
-        "extendedSeconds": 46.0,
-        "earlyEnds": 1,
-        "earlyEndSeconds": 7.0
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1609,
+        "ends": 107,
+        "extends": 0,
+        "greensEnded": 107,
+        "extensions": 0,
+        "extendedSeconds": 0.0,
+        "refused": 0
        }
       ]
      },
@@ -2830,10 +3001,10 @@
         "call": null,
         "departS": 106.5,
         "stoppedRedS": 0.0,
-        "stoppedQueueS": 12.0,
+        "stoppedQueueS": 15.0,
         "first": 106,
-        "last": 170,
-        "travelS": 81.4,
+        "last": 176,
+        "travelS": 87.4,
         "finished": true,
         "freeFlowS": null,
         "id": 1
@@ -2857,8 +3028,9 @@
        "trips": 90,
        "travelTime": 139.3,
        "timeLoss": 71.8,
-       "waiting": 25.5,
-       "speed": 20.9
+       "waiting": 36.9,
+       "speed": 20.9,
+       "waitingWindow": 25.5
       },
       "junctionMaxQueue": {
        "n0_3": 11,
@@ -2873,42 +3045,47 @@
      "right": {
       "ev_total": 1,
       "ev_unfinished": 0,
-      "ev_travel_mean_s": 58.4,
+      "ev_travel_mean_s": 66.2,
       "ev_stopped_red_s": 0.0,
-      "ev_stopped_queue_s": 3.0,
-      "queue_total_mean_veh": 19.72425249169435,
-      "throughput_vph": 1260.0,
+      "ev_stopped_queue_s": 4.0,
+      "queue_total_mean_veh": 19.61794019933555,
+      "throughput_vph": 1356.0,
       "teleports": 0,
-      "collisions": 2,
+      "collisions": 0,
       "car": {
-       "trips": 96,
-       "travelTime": 139.9,
-       "timeLoss": 70.7,
-       "waiting": 22.1,
-       "speed": 21.3
+       "trips": 101,
+       "travelTime": 143.7,
+       "timeLoss": 73.8,
+       "waiting": 34.2,
+       "speed": 21.3,
+       "waitingWindow": 21.9
       },
       "junctionMaxQueue": {
-       "n5_7": 9,
+       "n5_7": 10,
        "n0_3": 7,
-       "n4_7": 7,
-       "n3_7": 7,
        "n0_5": 6,
-       "n4_6": 5
+       "n0_7": 6,
+       "n3_3": 5,
+       "n5_3": 5
       },
       "rules": [
        {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 106,
-        "switches": 3,
+        "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 1,
-        "extendedSeconds": 4.0
+        "extendedSeconds": 8.0,
+        "earlyEnds": 1,
+        "earlyEndSeconds": 14.2
        },
        {
-        "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
-        "extensions": 2,
-        "extendedSeconds": 15.8,
-        "earlyEnds": 0,
-        "earlyEndSeconds": 0.0
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1593,
+        "ends": 116,
+        "extends": 7,
+        "greensEnded": 116,
+        "extensions": 7,
+        "extendedSeconds": 35.0,
+        "refused": 0
        }
       ]
      },
@@ -2938,10 +3115,10 @@
         "call": null,
         "departS": 105.0,
         "stoppedRedS": 0.0,
-        "stoppedQueueS": 3.0,
+        "stoppedQueueS": 4.0,
         "first": 105,
-        "last": 146,
-        "travelS": 58.4,
+        "last": 154,
+        "travelS": 66.2,
         "finished": true,
         "freeFlowS": null,
         "id": 1
@@ -2965,8 +3142,9 @@
        "trips": 93,
        "travelTime": 144.5,
        "timeLoss": 77.0,
-       "waiting": 25.5,
-       "speed": 20.3
+       "waiting": 40.9,
+       "speed": 20.3,
+       "waitingWindow": 25.5
       },
       "junctionMaxQueue": {
        "n0_3": 7,
@@ -2981,42 +3159,47 @@
      "right": {
       "ev_total": 2,
       "ev_unfinished": 0,
-      "ev_travel_mean_s": 82.65,
-      "ev_stopped_red_s": 0.5,
-      "ev_stopped_queue_s": 3.0,
-      "queue_total_mean_veh": 19.169435215946844,
-      "throughput_vph": 1260.0,
+      "ev_travel_mean_s": 102.0,
+      "ev_stopped_red_s": 0.0,
+      "ev_stopped_queue_s": 22.0,
+      "queue_total_mean_veh": 17.538205980066444,
+      "throughput_vph": 1296.0,
       "teleports": 0,
       "collisions": 0,
       "car": {
-       "trips": 96,
-       "travelTime": 143.1,
-       "timeLoss": 77.0,
-       "waiting": 25.3,
-       "speed": 20.1
+       "trips": 101,
+       "travelTime": 140.7,
+       "timeLoss": 73.3,
+       "waiting": 34.2,
+       "speed": 21.0,
+       "waitingWindow": 22.0
       },
       "junctionMaxQueue": {
-       "n3_3": 8,
-       "n0_5": 7,
-       "n3_5": 6,
-       "n5_5": 6,
-       "n4_3": 5,
-       "n0_3": 5
+       "n3_3": 9,
+       "n4_7": 8,
+       "n0_1": 6,
+       "n0_3": 5,
+       "n3_7": 5,
+       "n3_5": 5
       },
       "rules": [
        {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 100,
-        "switches": 0,
-        "extensions": 5,
-        "extendedSeconds": 20.0
-       },
-       {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 4,
-        "extendedSeconds": 59.5,
-        "earlyEnds": 6,
-        "earlyEndSeconds": 74.8
+        "extendedSeconds": 58.3,
+        "earlyEnds": 5,
+        "earlyEndSeconds": 105.0
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1596,
+        "ends": 120,
+        "extends": 0,
+        "greensEnded": 120,
+        "extensions": 0,
+        "extendedSeconds": 0.0,
+        "refused": 0
        }
       ]
      },
@@ -3061,10 +3244,10 @@
         "call": null,
         "departS": 95.0,
         "stoppedRedS": 0.0,
-        "stoppedQueueS": 2.0,
+        "stoppedQueueS": 3.0,
         "first": 95,
-        "last": 154,
-        "travelS": 74.4,
+        "last": 156,
+        "travelS": 76.1,
         "finished": true,
         "freeFlowS": null,
         "id": 1
@@ -3075,11 +3258,11 @@
         "kind": "responder",
         "call": null,
         "departS": 95.0,
-        "stoppedRedS": 1.0,
-        "stoppedQueueS": 4.0,
+        "stoppedRedS": 0.0,
+        "stoppedQueueS": 41.0,
         "first": 95,
-        "last": 170,
-        "travelS": 90.9,
+        "last": 207,
+        "travelS": 127.9,
         "finished": true,
         "freeFlowS": null,
         "id": 2
@@ -3093,12 +3276,12 @@
    "aggregate": {
     "queue_total_mean_veh": {
      "left_mean": 18.814,
-     "right_mean": 14.685,
-     "mean_diff": -4.13,
-     "pct": -21.95,
+     "right_mean": 14.068,
+     "mean_diff": -4.747,
+     "pct": -25.23,
      "ci95": [
-      -5.19,
-      -3.235
+      -5.444,
+      -4.105
      ],
      "pairs": 8,
      "better": 8,
@@ -3106,16 +3289,16 @@
     },
     "throughput_vph": {
      "left_mean": 1093.5,
-     "right_mean": 1186.5,
-     "mean_diff": 93.0,
-     "pct": 8.5,
+     "right_mean": 1195.5,
+     "mean_diff": 102.0,
+     "pct": 9.33,
      "ci95": [
-      70.5,
-      118.5
+      61.5,
+      139.5
      ],
      "pairs": 8,
-     "better": 8,
-     "worse": 0
+     "better": 7,
+     "worse": 1
     },
     "teleports": {
      "left_mean": 0.0,
@@ -3132,12 +3315,12 @@
     },
     "car_trips": {
      "left_mean": 83.0,
-     "right_mean": 90.25,
-     "mean_diff": 7.25,
-     "pct": 8.73,
+     "right_mean": 91.25,
+     "mean_diff": 8.25,
+     "pct": 9.94,
      "ci95": [
       5.625,
-      9.0
+      10.875
      ],
      "pairs": 8,
      "better": 8,
@@ -3145,38 +3328,38 @@
     },
     "car_travelTime": {
      "left_mean": 136.4,
-     "right_mean": 133.775,
-     "mean_diff": -2.625,
-     "pct": -1.92,
+     "right_mean": 129.488,
+     "mean_diff": -6.913,
+     "pct": -5.07,
      "ci95": [
-      -6.2,
-      0.625
+      -10.35,
+      -3.225
      ],
      "pairs": 8,
-     "better": 5,
-     "worse": 3
+     "better": 8,
+     "worse": 0
     },
     "car_timeLoss": {
      "left_mean": 72.675,
-     "right_mean": 68.5,
-     "mean_diff": -4.175,
-     "pct": -5.74,
+     "right_mean": 64.125,
+     "mean_diff": -8.55,
+     "pct": -11.76,
      "ci95": [
-      -7.0,
-      -1.825
+      -11.438,
+      -5.625
      ],
      "pairs": 8,
-     "better": 7,
-     "worse": 1
+     "better": 8,
+     "worse": 0
     },
     "car_waiting": {
-     "left_mean": 24.513,
-     "right_mean": 20.975,
-     "mean_diff": -3.538,
-     "pct": -14.43,
+     "left_mean": 38.375,
+     "right_mean": 29.587,
+     "mean_diff": -8.787,
+     "pct": -22.9,
      "ci95": [
-      -4.55,
-      -2.463
+      -10.875,
+      -6.8
      ],
      "pairs": 8,
      "better": 8,
@@ -3184,12 +3367,25 @@
     },
     "car_speed": {
      "left_mean": 20.7,
-     "right_mean": 21.413,
-     "mean_diff": 0.713,
-     "pct": 3.44,
+     "right_mean": 22.262,
+     "mean_diff": 1.562,
+     "pct": 7.55,
      "ci95": [
-      0.35,
-      1.113
+      1.15,
+      1.962
+     ],
+     "pairs": 8,
+     "better": 8,
+     "worse": 0
+    },
+    "car_waitingWindow": {
+     "left_mean": 24.513,
+     "right_mean": 19.963,
+     "mean_diff": -4.55,
+     "pct": -18.56,
+     "ci95": [
+      -5.312,
+      -3.637
      ],
      "pairs": 8,
      "better": 8,
@@ -3213,8 +3409,9 @@
        "trips": 85,
        "travelTime": 157.4,
        "timeLoss": 86.4,
-       "waiting": 26.2,
-       "speed": 19.5
+       "waiting": 46.0,
+       "speed": 19.5,
+       "waitingWindow": 26.2
       },
       "junctionMaxQueue": {
        "n5_3": 11,
@@ -3232,39 +3429,44 @@
       "ev_travel_mean_s": null,
       "ev_stopped_red_s": null,
       "ev_stopped_queue_s": null,
-      "queue_total_mean_veh": 15.345514950166113,
-      "throughput_vph": 1248.0,
+      "queue_total_mean_veh": 15.87375415282392,
+      "throughput_vph": 1260.0,
       "teleports": 0,
       "collisions": 0,
       "car": {
        "trips": 96,
-       "travelTime": 145.9,
-       "timeLoss": 74.5,
-       "waiting": 21.3,
-       "speed": 21.3
+       "travelTime": 143.5,
+       "timeLoss": 70.5,
+       "waiting": 32.9,
+       "speed": 21.9,
+       "waitingWindow": 21.5
       },
       "junctionMaxQueue": {
-       "n0_3": 9,
-       "n0_5": 5,
-       "n5_5": 5,
-       "n3_0": 5,
-       "n3_3": 5,
-       "n5_3": 5
+       "n0_5": 7,
+       "n3_3": 6,
+       "n3_7": 6,
+       "n0_3": 5,
+       "n5_3": 5,
+       "n0_6": 5
       },
       "rules": [
-       {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 90,
-        "switches": 2,
-        "extensions": 0,
-        "extendedSeconds": 0.0
-       },
        {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 0,
         "extendedSeconds": 0.0,
         "earlyEnds": 0,
         "earlyEndSeconds": 0.0
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1602,
+        "ends": 111,
+        "extends": 3,
+        "greensEnded": 111,
+        "extensions": 3,
+        "extendedSeconds": 15.0,
+        "refused": 0
        }
       ]
      },
@@ -3289,8 +3491,9 @@
        "trips": 75,
        "travelTime": 134.1,
        "timeLoss": 70.9,
-       "waiting": 21.9,
-       "speed": 21.6
+       "waiting": 35.4,
+       "speed": 21.6,
+       "waitingWindow": 21.9
       },
       "junctionMaxQueue": {
        "n0_3": 10,
@@ -3308,39 +3511,44 @@
       "ev_travel_mean_s": null,
       "ev_stopped_red_s": null,
       "ev_stopped_queue_s": null,
-      "queue_total_mean_veh": 11.534883720930232,
-      "throughput_vph": 1068.0,
+      "queue_total_mean_veh": 10.631229235880399,
+      "throughput_vph": 1092.0,
       "teleports": 0,
       "collisions": 0,
       "car": {
-       "trips": 82,
-       "travelTime": 132.0,
-       "timeLoss": 67.9,
-       "waiting": 20.4,
-       "speed": 21.7
+       "trips": 84,
+       "travelTime": 125.3,
+       "timeLoss": 61.1,
+       "waiting": 27.4,
+       "speed": 22.9,
+       "waitingWindow": 19.8
       },
       "junctionMaxQueue": {
-       "n3_7": 7,
-       "n5_3": 6,
-       "n0_6": 6,
-       "n0_5": 6,
-       "n0_3": 5,
-       "n3_5": 4
+       "n0_7": 7,
+       "n3_7": 6,
+       "n4_7": 5,
+       "n5_7": 5,
+       "n0_5": 5,
+       "n3_0": 4
       },
       "rules": [
-       {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 92,
-        "switches": 0,
-        "extensions": 0,
-        "extendedSeconds": 0.0
-       },
        {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 0,
         "extendedSeconds": 0.0,
         "earlyEnds": 0,
         "earlyEndSeconds": 0.0
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1604,
+        "ends": 112,
+        "extends": 0,
+        "greensEnded": 112,
+        "extensions": 0,
+        "extendedSeconds": 0.0,
+        "refused": 0
        }
       ]
      },
@@ -3365,8 +3573,9 @@
        "trips": 87,
        "travelTime": 120.2,
        "timeLoss": 58.4,
-       "waiting": 20.4,
-       "speed": 22.7
+       "waiting": 29.5,
+       "speed": 22.7,
+       "waitingWindow": 20.4
       },
       "junctionMaxQueue": {
        "n3_5": 8,
@@ -3384,39 +3593,44 @@
       "ev_travel_mean_s": null,
       "ev_stopped_red_s": null,
       "ev_stopped_queue_s": null,
-      "queue_total_mean_veh": 14.551495016611296,
-      "throughput_vph": 1200.0,
+      "queue_total_mean_veh": 13.39202657807309,
+      "throughput_vph": 1140.0,
       "teleports": 0,
       "collisions": 0,
       "car": {
-       "trips": 92,
-       "travelTime": 124.8,
-       "timeLoss": 59.5,
-       "waiting": 18.2,
-       "speed": 22.8
+       "trips": 89,
+       "travelTime": 119.9,
+       "timeLoss": 55.8,
+       "waiting": 24.3,
+       "speed": 23.4,
+       "waitingWindow": 16.5
       },
       "junctionMaxQueue": {
-       "n3_3": 8,
-       "n3_0": 7,
-       "n0_7": 7,
-       "n3_5": 6,
-       "n0_3": 6,
-       "n3_7": 6
+       "n3_3": 9,
+       "n3_5": 8,
+       "n0_3": 7,
+       "n4_3": 6,
+       "n0_0": 6,
+       "n3_0": 4
       },
       "rules": [
-       {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 82,
-        "switches": 3,
-        "extensions": 0,
-        "extendedSeconds": 0.0
-       },
        {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 0,
         "extendedSeconds": 0.0,
         "earlyEnds": 0,
         "earlyEndSeconds": 0.0
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1608,
+        "ends": 107,
+        "extends": 1,
+        "greensEnded": 107,
+        "extensions": 1,
+        "extendedSeconds": 5.0,
+        "refused": 0
        }
       ]
      },
@@ -3441,8 +3655,9 @@
        "trips": 91,
        "travelTime": 133.3,
        "timeLoss": 71.5,
-       "waiting": 24.8,
-       "speed": 20.3
+       "waiting": 37.4,
+       "speed": 20.3,
+       "waitingWindow": 24.8
       },
       "junctionMaxQueue": {
        "n0_5": 7,
@@ -3460,39 +3675,44 @@
       "ev_travel_mean_s": null,
       "ev_stopped_red_s": null,
       "ev_stopped_queue_s": null,
-      "queue_total_mean_veh": 15.172757475083056,
-      "throughput_vph": 1332.0,
+      "queue_total_mean_veh": 14.893687707641195,
+      "throughput_vph": 1368.0,
       "teleports": 0,
       "collisions": 0,
       "car": {
-       "trips": 102,
-       "travelTime": 133.6,
-       "timeLoss": 68.0,
-       "waiting": 20.9,
-       "speed": 21.3
+       "trips": 105,
+       "travelTime": 133.0,
+       "timeLoss": 67.1,
+       "waiting": 30.6,
+       "speed": 21.8,
+       "waitingWindow": 19.1
       },
       "junctionMaxQueue": {
-       "n3_7": 7,
        "n5_3": 6,
        "n3_0": 5,
        "n3_3": 5,
-       "n0_3": 5,
-       "n4_3": 5
+       "n3_7": 5,
+       "n0_5": 5,
+       "n0_3": 4
       },
       "rules": [
-       {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 116,
-        "switches": 0,
-        "extensions": 0,
-        "extendedSeconds": 0.0
-       },
        {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 0,
         "extendedSeconds": 0.0,
         "earlyEnds": 0,
         "earlyEndSeconds": 0.0
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1585,
+        "ends": 131,
+        "extends": 0,
+        "greensEnded": 131,
+        "extensions": 0,
+        "extendedSeconds": 0.0,
+        "refused": 0
        }
       ]
      },
@@ -3517,8 +3737,9 @@
        "trips": 75,
        "travelTime": 141.1,
        "timeLoss": 75.8,
-       "waiting": 24.7,
-       "speed": 20.4
+       "waiting": 41.4,
+       "speed": 20.4,
+       "waitingWindow": 24.7
       },
       "junctionMaxQueue": {
        "n3_5": 7,
@@ -3536,39 +3757,44 @@
       "ev_travel_mean_s": null,
       "ev_stopped_red_s": null,
       "ev_stopped_queue_s": null,
-      "queue_total_mean_veh": 13.700996677740864,
-      "throughput_vph": 1044.0,
+      "queue_total_mean_veh": 12.375415282392026,
+      "throughput_vph": 1104.0,
       "teleports": 0,
       "collisions": 0,
       "car": {
-       "trips": 82,
-       "travelTime": 132.0,
-       "timeLoss": 67.4,
-       "waiting": 20.0,
-       "speed": 21.6
+       "trips": 86,
+       "travelTime": 130.0,
+       "timeLoss": 63.4,
+       "waiting": 29.2,
+       "speed": 22.3,
+       "waitingWindow": 19.0
       },
       "junctionMaxQueue": {
-       "n0_3": 7,
-       "n3_3": 4,
-       "n5_7": 4,
-       "n3_6": 4,
-       "n5_3": 4,
-       "n5_0": 4
+       "n3_3": 6,
+       "n3_6": 6,
+       "n0_6": 5,
+       "n0_0": 4,
+       "n0_3": 4,
+       "n5_3": 4
       },
       "rules": [
-       {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 102,
-        "switches": 0,
-        "extensions": 0,
-        "extendedSeconds": 0.0
-       },
        {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 0,
         "extendedSeconds": 0.0,
         "earlyEnds": 0,
         "earlyEndSeconds": 0.0
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1600,
+        "ends": 116,
+        "extends": 0,
+        "greensEnded": 116,
+        "extensions": 0,
+        "extendedSeconds": 0.0,
+        "refused": 0
        }
       ]
      },
@@ -3593,8 +3819,9 @@
        "trips": 77,
        "travelTime": 120.9,
        "timeLoss": 64.5,
-       "waiting": 24.2,
-       "speed": 20.1
+       "waiting": 36.2,
+       "speed": 20.1,
+       "waitingWindow": 24.2
       },
       "junctionMaxQueue": {
        "n0_6": 8,
@@ -3612,39 +3839,44 @@
       "ev_travel_mean_s": null,
       "ev_stopped_red_s": null,
       "ev_stopped_queue_s": null,
-      "queue_total_mean_veh": 14.744186046511627,
+      "queue_total_mean_veh": 12.800664451827242,
       "throughput_vph": 1152.0,
       "teleports": 0,
       "collisions": 0,
       "car": {
        "trips": 85,
-       "travelTime": 119.7,
-       "timeLoss": 61.9,
-       "waiting": 22.9,
-       "speed": 20.9
+       "travelTime": 113.1,
+       "timeLoss": 56.0,
+       "waiting": 26.7,
+       "speed": 22.3,
+       "waitingWindow": 20.6
       },
       "junctionMaxQueue": {
-       "n0_6": 7,
-       "n3_3": 6,
-       "n0_5": 6,
+       "n3_3": 8,
        "n0_3": 5,
+       "n0_7": 5,
+       "n0_5": 5,
        "n4_3": 4,
-       "n5_3": 4
+       "n3_7": 4
       },
       "rules": [
-       {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 103,
-        "switches": 3,
-        "extensions": 2,
-        "extendedSeconds": 8.0
-       },
        {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 0,
         "extendedSeconds": 0.0,
         "earlyEnds": 0,
         "earlyEndSeconds": 0.0
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1603,
+        "ends": 113,
+        "extends": 0,
+        "greensEnded": 113,
+        "extensions": 0,
+        "extendedSeconds": 0.0,
+        "refused": 0
        }
       ]
      },
@@ -3669,8 +3901,9 @@
        "trips": 83,
        "travelTime": 137.6,
        "timeLoss": 74.4,
-       "waiting": 27.1,
-       "speed": 20.8
+       "waiting": 38.8,
+       "speed": 20.8,
+       "waitingWindow": 27.1
       },
       "junctionMaxQueue": {
        "n0_3": 10,
@@ -3688,39 +3921,44 @@
       "ev_travel_mean_s": null,
       "ev_stopped_red_s": null,
       "ev_stopped_queue_s": null,
-      "queue_total_mean_veh": 16.980066445182725,
-      "throughput_vph": 1212.0,
+      "queue_total_mean_veh": 17.920265780730897,
+      "throughput_vph": 1164.0,
       "teleports": 0,
-      "collisions": 2,
+      "collisions": 1,
       "car": {
-       "trips": 88,
-       "travelTime": 138.5,
-       "timeLoss": 72.2,
-       "waiting": 21.3,
-       "speed": 21.1
+       "trips": 87,
+       "travelTime": 136.0,
+       "timeLoss": 70.2,
+       "waiting": 34.1,
+       "speed": 21.6,
+       "waitingWindow": 22.1
       },
       "junctionMaxQueue": {
-       "n3_0": 8,
+       "n3_3": 8,
        "n0_3": 7,
+       "n3_7": 7,
        "n3_1": 7,
-       "n3_3": 7,
-       "n3_7": 6,
-       "n3_5": 5
+       "n0_7": 7,
+       "n0_6": 6
       },
       "rules": [
-       {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 94,
-        "switches": 5,
-        "extensions": 0,
-        "extendedSeconds": 0.0
-       },
        {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 0,
         "extendedSeconds": 0.0,
         "earlyEnds": 0,
         "earlyEndSeconds": 0.0
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1599,
+        "ends": 113,
+        "extends": 4,
+        "greensEnded": 113,
+        "extensions": 4,
+        "extendedSeconds": 20.0,
+        "refused": 0
        }
       ]
      },
@@ -3745,8 +3983,9 @@
        "trips": 91,
        "travelTime": 146.6,
        "timeLoss": 79.5,
-       "waiting": 26.8,
-       "speed": 20.2
+       "waiting": 42.3,
+       "speed": 20.2,
+       "waitingWindow": 26.8
       },
       "junctionMaxQueue": {
        "n3_3": 6,
@@ -3764,39 +4003,44 @@
       "ev_travel_mean_s": null,
       "ev_stopped_red_s": null,
       "ev_stopped_queue_s": null,
-      "queue_total_mean_veh": 15.448504983388704,
-      "throughput_vph": 1236.0,
+      "queue_total_mean_veh": 14.654485049833887,
+      "throughput_vph": 1284.0,
       "teleports": 0,
       "collisions": 2,
       "car": {
-       "trips": 95,
-       "travelTime": 143.7,
-       "timeLoss": 76.6,
-       "waiting": 22.8,
-       "speed": 20.6
+       "trips": 98,
+       "travelTime": 135.1,
+       "timeLoss": 68.9,
+       "waiting": 31.5,
+       "speed": 21.9,
+       "waitingWindow": 21.1
       },
       "junctionMaxQueue": {
-       "n3_7": 7,
-       "n3_5": 5,
-       "n4_3": 5,
-       "n3_3": 5,
+       "n3_3": 8,
+       "n5_3": 8,
+       "n3_0": 7,
+       "n3_7": 6,
        "n0_3": 5,
-       "n0_1": 5
+       "n4_7": 5
       },
       "rules": [
-       {
-        "rule": "queue-responsive green durations on fixed plans (gap-out, switch on demand, extend; min 10 s, max 60 s)",
-        "gapOuts": 104,
-        "switches": 1,
-        "extensions": 0,
-        "extendedSeconds": 0.0
-       },
        {
         "rule": "ambulance green priority (phase durations only; no skipped amber/all-red)",
         "extensions": 0,
         "extendedSeconds": 0.0,
         "earlyEnds": 0,
         "earlyEndSeconds": 0.0
+       },
+       {
+        "rule": "learned per-junction policy (shared network; hold / end / extend every 5 s, masked to safe timings)",
+        "decisions": 1716,
+        "holds": 1595,
+        "ends": 121,
+        "extends": 0,
+        "greensEnded": 121,
+        "extensions": 0,
+        "extendedSeconds": 0.0,
+        "refused": 0
        }
       ]
      },

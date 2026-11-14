@@ -30,7 +30,9 @@ describe('recorded results', () => {
   it('uses the new schema', () => {
     expect(results.schema).toBe('flowstate.controller-results/2')
     expect(results.baseline).toBe('fixed_time')
-    expect(results.flowstate).toBe('queue_responsive')
+    // the headline features the learned policy only while the gate has verified it; the rules are always the reference
+    expect(results.flowstate).toBe(results.controllers.rl_ppo?.status === 'verified' ? 'rl_ppo' : 'queue_responsive')
+    expect(results.rules).toBe('queue_responsive')
     expect(results.network.id).toBe('district')
   })
   it('lists the controllers present, baseline first, and the default is not experimental', () => {

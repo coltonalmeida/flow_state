@@ -87,7 +87,9 @@ def main(src: Path) -> None:
         "source": {"file": src.name, "builtAt": meta.get("built_at"), "split": meta.get("split"), "seeds": meta["seeds"], "note": meta.get("note")},
         "network": {"id": "district", "description": "Toronto King West district, 22 signals"},
         "baseline": "fixed_time",
-        "flowstate": "queue_responsive",
+        # what the headline compares with fixed-time: the learned policy once the gate has verified it, otherwise the rules
+        "flowstate": "rl_ppo" if controllers.get("rl_ppo", {}).get("status") == "verified" else "queue_responsive",
+        "rules": "queue_responsive",
         "controllers": controllers,
         "safety": {"minGreen": "8-12", "maxGreen": 60, "hardMaxGreen": 80, "decision": 5,
                    "note": "amber, all-red, pedestrian clearance and protected-left phases always run their programmed length; transit and ambulance priority can hold a green to at most 80 s"},

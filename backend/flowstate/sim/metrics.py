@@ -64,6 +64,7 @@ class ModeStats:
             "travelTime": round(self.travel / n, 1) if self.trips else None,
             "timeLoss": round(self.loss / n, 1) if self.trips else None,
             "waiting": round(self.waiting / n, 1) if self.trips else None,
+            "waitTotal": round(self.wait_total / n, 1) if self.trips else None,
             "speed": round(self.distance / self.travel * 3.6, 1) if self.travel > 0 else None,
         }
 

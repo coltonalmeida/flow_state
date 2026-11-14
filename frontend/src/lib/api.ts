@@ -61,6 +61,8 @@ export interface ControllerEntry {
 export interface ControllersInfo {
   network: string
   default_controller: string
+  /** what the Results page shows first: the learned policy while it is verified, otherwise the default */
+  featured_controller?: string
   controllers: ControllerEntry[]
 }
 

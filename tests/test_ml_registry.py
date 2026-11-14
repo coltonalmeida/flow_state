@@ -43,6 +43,19 @@ def test_status_follows_the_gate_and_the_manifest_hash(tmp_path):
     assert registry.controllers(tmp_path)["default_controller"] == "queue_responsive"
 
 
+def test_the_results_page_features_the_learned_policy_only_while_it_is_verified(tmp_path):
+    assert registry.controllers(tmp_path)["featured_controller"] == "queue_responsive"  # no model
+    _write_rl(tmp_path)
+    assert registry.controllers(tmp_path)["featured_controller"] == "queue_responsive"  # a model without a gate result
+    (tmp_path / "evaluation.json").write_text(json.dumps({"gate": {"rl_ppo": {"status": "experimental", "failed": ["wait_ci_below_zero"]}}, "meta": {}}))
+    assert registry.controllers(tmp_path)["featured_controller"] == "queue_responsive"
+    (tmp_path / "evaluation.json").write_text(json.dumps({"gate": {"rl_ppo": {"status": "verified", "failed": []}}, "meta": {}}))
+    doc = registry.controllers(tmp_path)
+    assert doc["featured_controller"] == "rl_ppo" and doc["default_controller"] == "queue_responsive" and registry.resolve(None, tmp_path)["used"] == "queue_responsive"
+    (tmp_path / "rl" / "policy.npz").write_bytes(b"changed")  # the verified file was replaced: no longer featured
+    assert registry.controllers(tmp_path)["featured_controller"] == "queue_responsive"
+
+
 def test_tampered_model_is_unavailable(tmp_path):
     _write_rl(tmp_path, sha_ok=False)
     c = _by_id(registry.controllers(tmp_path))["rl_ppo"]

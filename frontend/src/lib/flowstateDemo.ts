@@ -45,7 +45,7 @@ export interface DemoAsset {
 }
 
 export interface DemoHeadline { key: string; label: string; unit: string; left: number | null; right: number | null; pct: number | null; ci95: [number, number] | null; better: number | null; worse: number | null }
-export interface DemoIndex { network: string; builtAt: string; seeds: number[]; scenarios: { id: string; title: string; tagline: string; units: number; headline: DemoHeadline }[] }
+export interface DemoIndex { network: string; builtAt: string; seeds: number[]; /** right-hand controller of the recorded runs (absent: the FlowState rules) */ controller?: string; status?: string; scenarios: { id: string; title: string; tagline: string; units: number; headline: DemoHeadline }[] }
 
 export const STATUS_TEXT = ['moving', 'stopped at a red light', 'stuck behind queued cars', 'moving, green light ahead']
 

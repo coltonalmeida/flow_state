@@ -351,7 +351,7 @@ function Units({ units, example, onPick }: { units: DemoUnit[]; example: number 
 // ---- section ---------------------------------------------------------------
 interface CatalogScenario { id: string; title: string; tagline: string }
 
-export function SideBySide({ onController }: { onController?: (c: { title: string; experimental: boolean } | null) => void } = {}) {
+export function SideBySide({ onController }: { onController?: (c: { id: string; title: string; experimental: boolean } | null) => void } = {}) {
   const [index, setIndex] = useState<DemoIndex | { error: string } | null>(null)
   const [catalog, setCatalog] = useState<CatalogScenario[]>([])
   const [tab, setTab] = useState<string | null>(null)
@@ -361,35 +361,39 @@ export function SideBySide({ onController }: { onController?: (c: { title: strin
   const [started, setStarted] = useState(0)
   const [catalogReady, setCatalogReady] = useState(false)
   const [ctrls, setCtrls] = useState<ControllersInfo | null>(null)
-  const [controller, setController] = useState<string | null>(null) // null = the server's default
+  const [ctrlsReady, setCtrlsReady] = useState(false)
+  const [controller, setController] = useState<string | null>(null) // null = the featured controller
   useEffect(() => {
     let live = true
-    api.controllers().then((c) => { if (live) setCtrls(c) }, () => {})
+    api.controllers().then((c) => { if (live) setCtrls(c) }, () => {}).finally(() => { if (live) setCtrlsReady(true) })
     loadIndex().then((ix) => { if (live) { setIndex(ix); setTab((s) => s ?? (ix.scenarios.some((x) => x.id === 'ambulance') ? 'ambulance' : ix.scenarios[0]?.id ?? null)) } }, (e: unknown) => { if (live) setIndex({ error: e instanceof Error ? e.message : String(e) }) })
     fetch('/api/scenarios').then((r) => (r.ok ? r.json() : [])).then((list: CatalogScenario[]) => { if (live) setCatalog(Array.isArray(list) ? list : []) }, () => {}).finally(() => { if (live) setCatalogReady(true) })
     return () => { live = false }
   }, [])
+  // what the recorded runs show (assets recorded before the index named it are the rules), what the page leads with, and what is selected now
+  const recordedCtl = (index && !('error' in index) ? index.controller : null) ?? 'queue_responsive'
+  const featured = ctrls?.featured_controller ?? ctrls?.default_controller ?? recordedCtl
+  const effective = controller ?? featured
   useEffect(() => {
-    if (!tab || !index || 'error' in index || data[tab] || !catalogReady) return
+    if (!tab || !index || 'error' in index || data[tab] || !catalogReady || !ctrlsReady) return
     let live = true
     const recorded = index.scenarios.some((x) => x.id === tab)
     const live_ = catalog.length > 0 // with the simulation backend every scenario, including the first one, is simulated now; without it the recorded runs are shown
     setBusy(live_); setError(null); setStarted(performance.now())
-    const chosen = controller && controller !== ctrls?.default_controller ? controller : null
-    // the pre-recorded runs are the default controller only: a chosen controller is never silently swapped for them
-    const job = live_ ? runComparison(tab, null, chosen, ctrls?.default_controller).catch(() => (recorded && !chosen ? loadScenario(tab) : Promise.reject(new Error('Simulation backend unreachable')))) : loadScenario(tab)
+    // the pre-recorded runs are one controller only: any other choice is never silently swapped for them
+    const job = live_ ? runComparison(tab, null, effective, ctrls?.default_controller).catch(() => (recorded && effective === recordedCtl ? loadScenario(tab) : Promise.reject(new Error('Simulation backend unreachable')))) : loadScenario(tab)
     job.then(async (asset) => {
       const net = await loadNetwork(asset.network ?? index.network)
       if (live) setData((d) => ({ ...d, [tab]: { asset, net, scene: buildScene(net) } }))
     }).catch((e: unknown) => { if (live) setError(e instanceof Error ? e.message : String(e)) }).finally(() => { if (live) setBusy(false) })
     return () => { live = false }
-  }, [tab, index, data, catalog, catalogReady, controller, ctrls])
+  }, [tab, index, data, catalog, catalogReady, ctrlsReady, effective, recordedCtl, ctrls])
   const titles = useMemo(() => Object.fromEntries((ctrls?.controllers ?? []).map((c) => [c.id, c.title])), [ctrls])
   // the page title names what the replay shows: an experimental controller must not sit under a "FlowState" headline
   useEffect(() => {
-    const c = controller ? ctrls?.controllers.find((x) => x.id === controller) : null
-    onController?.(c && c.available ? { title: c.title, experimental: c.status === 'experimental' } : null)
-  }, [controller, ctrls, onController])
+    const c = ctrls?.controllers.find((x) => x.id === effective)
+    onController?.(c && c.available ? { id: c.id, title: c.title, experimental: c.status === 'experimental' } : null)
+  }, [effective, ctrls, onController])
 
   if (index && 'error' in index) {
     return (
@@ -417,12 +421,12 @@ export function SideBySide({ onController }: { onController?: (c: { title: strin
           {ctrls && catalog.length > 0 && (
             <label className="flex items-center gap-2 text-[13px] text-ink-3">
               Compare fixed-time with
-              <select aria-label="Controller" value={controller ?? ctrls.default_controller}
-                onChange={(e) => { setData({}); setController(e.target.value === ctrls.default_controller ? null : e.target.value) }}
+              <select aria-label="Controller" value={effective}
+                onChange={(e) => { setData({}); setController(e.target.value) }}
                 className="h-8 cursor-pointer rounded-full bg-white/70 px-3 text-[13px] font-[550] text-ink shadow-[0_0_0_1px_rgb(12_19_34/0.08)] outline-none">
                 {ctrls.controllers.filter((c) => c.kind !== 'baseline').map((c) => (
                   <option key={c.id} value={c.id} disabled={!c.available}>
-                    {c.title}{c.status === 'experimental' ? ' (experimental)' : !c.available ? ' (unavailable)' : c.id === ctrls.default_controller ? ' (default)' : ''}
+                    {c.title}{!c.available ? ' (unavailable)' : c.status === 'experimental' ? ' (experimental)' : c.status === 'verified' ? ' (verified)' : c.id === ctrls.default_controller ? ' (hand-written)' : ''}
                   </option>
                 ))}
               </select>
@@ -433,7 +437,7 @@ export function SideBySide({ onController }: { onController?: (c: { title: strin
           </p>
         </div>
       )}
-      {loaded && !busy ? <Replay key={`${tab}:${loaded.asset.seed}`} data={loaded} titles={titles} /> : <Generating busy={busy} started={started} title={options.find((o) => o.id === tab)?.title ?? ''} rightName={controller ? (titles[controller] ?? controller) : 'FlowState'} />}
+      {loaded && !busy ? <Replay key={`${tab}:${loaded.asset.seed}`} data={loaded} titles={titles} /> : <Generating busy={busy} started={started} title={options.find((o) => o.id === tab)?.title ?? ''} rightName={effective !== featured ? (titles[effective] ?? effective) : 'FlowState'} />}
     </section>
   )
 }

@@ -14,16 +14,19 @@ import {
   type MetricStats,
 } from '../lib/controllerResults'
 import { cn, num } from '../lib/format'
-import { BASE, COLOR, FS, HERO, card, signed } from '../lib/resultsTheme'
+import { BASE, COLOR, FS, HERO, RULES, card, signed } from '../lib/resultsTheme'
 import { Cap, Eyebrow, H2, Pill, Swatch, Td, Th } from './resultsUi'
 import { FlowBackdrop } from './FlowBackdrop'
 import { SideBySide } from './SideBySide'
 
-// Recorded SUMO evaluation on the held-out test seeds. The headline compares fixed-time with the shipped FlowState rules (queue_responsive).
+// Recorded SUMO evaluation on the held-out test seeds. The headline compares fixed-time with the featured controller (FS): the learned policy while the
+// publication gate has verified it, otherwise the FlowState rules. The controller table and the gate always compare against the rules (RULES).
 const R = results.results
 const TITLE = (c: ControllerId) => results.controllers[c]?.title ?? c
 const BASE_TITLE = TITLE(BASE)
 const FS_TITLE = TITLE(FS)
+const RULES_TITLE = TITLE(RULES)
+const LEARNED = FS !== RULES
 const seedText = `${R.seeds[2] ?? R.seeds.length} test seeds (${R.seeds[0]}–${R.seeds[1]})`
 const NOTE = results.source.note?.replace(/^simulation only:\s*/i, '')
 
@@ -88,7 +91,7 @@ function Bars({ m, base, fs }: { m: MetricDef; base: number; fs: number }) {
   const max = Math.max(base, fs) * 1.087 || 1
   const rows: [ControllerId, string, number][] = [
     [BASE, 'Fixed', base],
-    [FS, 'Rules', fs],
+    [FS, LEARNED ? 'ML model' : 'Rules', fs],
   ]
   return (
     <div className="flex flex-col gap-1.5 text-[12px]">
@@ -138,7 +141,7 @@ function HeadlineMeasures() {
     <section className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-4">
         <H2>Headline measures</H2>
-        <Cap>Lower is better, except throughput. Fixed-time against the FlowState rules.</Cap>
+        <Cap>Lower is better, except throughput. Fixed-time against {FS_TITLE}.</Cap>
       </div>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(232px,1fr))] gap-4">
         {HERO.map((k) => (
@@ -167,8 +170,8 @@ function RulesCell({ id, k }: { id: ControllerId; k: MetricKey }) {
   const m = METRICS[k]
   const s = R.vsRules.overall[id]?.metrics[k]
   if (!s) return <Td>—</Td>
-  const v = id === FS ? 'unclear' : verdict(m, s.vs)
-  const pct = id === FS ? null : s.vs?.pct
+  const v = id === RULES ? 'unclear' : verdict(m, s.vs)
+  const pct = id === RULES ? null : s.vs?.pct
   return (
     <Td className="tnum">
       <span className="font-[550] text-ink">{num(scale(m, s.mean), m.digits)}</span>
@@ -189,7 +192,7 @@ function ControllerTable() {
       <div className="flex flex-col gap-1 px-6">
         <H2>All controllers</H2>
         <Cap>
-          Each figure is the mean over {R.pairs} paired runs; the percentage is the change against {FS_TITLE}, coloured only when the paired 95% interval excludes zero. Lower is better, except throughput.
+          Each figure is the mean over {R.pairs} paired runs; the percentage is the change against {RULES_TITLE}, coloured only when the paired 95% interval excludes zero. Lower is better, except throughput.
         </Cap>
       </div>
       <div className="overflow-x-auto">
@@ -222,7 +225,7 @@ function ControllerTable() {
       </div>
       {failing.length > 0 && (
         <div className="flex flex-col gap-3 border-t border-muted px-6 pt-4">
-          <Eyebrow>Publication gate: held-out test seeds against {FS_TITLE}</Eyebrow>
+          <Eyebrow>Publication gate: held-out test seeds against {RULES_TITLE}</Eyebrow>
           {failing.map((c) => {
             const g = results.controllers[c]!.gate!
             return (
@@ -233,7 +236,7 @@ function ControllerTable() {
               </div>
             )
           })}
-          <Cap>Experimental controllers are shown for transparency. None of them is the default, and none is presented as better than the FlowState rules.</Cap>
+          <Cap>Experimental controllers are shown for transparency. None of them is the default, and none is presented as better than the FlowState rules.{LEARNED ? ` ${FS_TITLE} passed every check of the gate.` : ''}</Cap>
         </div>
       )}
     </section>
@@ -242,7 +245,7 @@ function ControllerTable() {
 
 // ---- head to head ----------------------------------------------------------
 function HeadToHead() {
-  const [sel, setSel] = useState<ControllerId>(FS) // the rules, never an experimental controller
+  const [sel, setSel] = useState<ControllerId>(FS) // the featured controller, never an experimental one
   const picks = presentControllers().filter((c) => c !== BASE)
   const selTitle = TITLE(sel)
   const titles = Object.fromEntries(results.scenarios.map((s) => [s.id, s.title]))
@@ -396,7 +399,8 @@ function HeadToHead() {
 
 // ---- page ------------------------------------------------------------------
 export function ResultsView() {
-  const [shown, setShown] = useState<{ title: string; experimental: boolean } | null>(null) // the replay's controller, when not the default
+  const [shown, setShown] = useState<{ id: string; title: string; experimental: boolean } | null>(null) // the replay's controller
+  const other = shown && shown.id !== FS ? shown : null // someone picked a controller other than the featured one
   const patterns = Object.keys(R.vsFixed.perScenario).length
   return (
     <div className="scroll-y min-w-0 flex-1 bg-canvas">
@@ -406,8 +410,9 @@ export function ResultsView() {
         </div>
       </div>
       <main className="relative z-10 mx-auto flex max-w-[1100px] flex-col gap-8 px-4 pb-[72px] pt-10 min-[720px]:px-8">
-        <h1 className="m-0 text-balance pt-2 text-center text-[40px] font-[650] leading-[1.1] tracking-[-0.03em]">Fixed-time <span className="text-ink-3">vs</span> {shown ? shown.title : 'FlowState'}</h1>
-        {shown?.experimental && <p className="m-0 -mt-5 text-center text-[13px] text-ink-3">Experimental controller in the replay below. The evaluation further down compares every controller; FlowState's default is the hand-written rules.</p>}
+        <h1 className="m-0 text-balance pt-2 text-center text-[40px] font-[650] leading-[1.1] tracking-[-0.03em]">Fixed-time <span className="text-ink-3">vs</span> {other ? other.title : 'FlowState'}</h1>
+        {!other && LEARNED && <p className="m-0 -mt-5 text-center text-[13px] text-ink-3">FlowState here is the {FS_TITLE.toLowerCase().replace('ppo', 'PPO')}: a trained model that passed the held-out gate against the hand-written rules.</p>}
+        {other?.experimental && <p className="m-0 -mt-5 text-center text-[13px] text-ink-3">Experimental controller in the replay below: it did not pass the held-out gate. The evaluation further down compares every controller.</p>}
         <SideBySide onController={setShown} />
         <Headline />
         <HeadlineMeasures />

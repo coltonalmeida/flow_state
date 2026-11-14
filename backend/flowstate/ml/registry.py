@@ -5,6 +5,9 @@ Status comes from files, never from code: an ML controller is ``verified`` only 
 ``experimental``: it can be shown when someone asks for it by name, but it is never the default, and a controller whose model files are
 missing or do not match their manifest is ``unavailable`` and falls back to the queue-responsive rules.
 
+``default_controller`` (what runs when nothing is asked for) is always the queue-responsive rules. ``featured_controller`` is what the
+Results page shows first: the PPO policy while it is available and verified, otherwise the rules.
+
 This module imports nothing heavy, so the API can serve it without the ML requirements installed.
 """
 
@@ -18,6 +21,8 @@ from pathlib import Path
 from typing import Any
 
 DEFAULT_CONTROLLER = "queue_responsive"
+# The trained controller the Results page leads with, once (and only while) the gate has verified it. The default above never changes with it.
+FEATURED_ML = "rl_ppo"
 SPECS: list[dict[str, Any]] = [
     {"id": "fixed_time", "title": "Fixed-time", "kind": "baseline", "detail": "The pre-timed signal plans; ignores traffic."},
     {"id": "queue_responsive", "title": "FlowState rules", "kind": "rule",
@@ -83,7 +88,8 @@ def controllers(directory: Path | None = None) -> dict[str, Any]:
             c["heldOut"] = {k: m[k]["mean"] for k in ("mean_wait_s", "mean_time_loss_s", "throughput_vph", "teleports") if k in m}
         out.append(c)
     meta = ev.get("meta", {})
-    return {"network": "district", "default_controller": DEFAULT_CONTROLLER, "controllers": out,
+    featured = next((c["id"] for c in out if c["id"] == FEATURED_ML and c["available"] and c["status"] == "verified"), DEFAULT_CONTROLLER)
+    return {"network": "district", "default_controller": DEFAULT_CONTROLLER, "featured_controller": featured, "controllers": out,
             "evaluation": {"split": meta.get("split"), "seeds": meta.get("seeds"), "scenarios": meta.get("scenarios"), "heldout_scenario": meta.get("heldout_scenario"),
                            "pairs": ev.get("vs_queue_responsive", {}).get("pairs"), "built_at": meta.get("built_at"), "baseline": "queue_responsive",
                            "note": meta.get("note")} if ev else None}

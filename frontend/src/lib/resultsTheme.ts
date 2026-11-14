@@ -4,6 +4,7 @@ import { results, type ControllerId, type MetricKey } from './controllerResults'
 export const COLOR: Record<ControllerId, string> = { queue_responsive: '#2a78d6', fixed_time: '#eb6834', safe_heuristic: '#8a93a3', ml_forecast: '#8b5cf6', rl_ppo: '#1baf7a' }
 export const BASE = results.baseline
 export const FS = results.flowstate
+export const RULES: ControllerId = results.rules ?? 'queue_responsive'
 
 export const HERO: MetricKey[] = ['mean_wait_s', 'mean_time_loss_s', 'queue_max_veh', 'throughput_vph']
 

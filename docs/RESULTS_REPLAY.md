@@ -1,35 +1,42 @@
 # Results page: side-by-side replays on the downtown network
 
 The first section of the Results tab replays recorded SUMO runs on the `district` network (the same map and renderer as the Simulation page): the left
-map is main's **fixed-time plans**, the right map is the **same plans with FlowState's rules**. Both sides use the same seed, demand and events; only the
-signal control differs. Nothing is simulated in the browser; the page plays back recorded positions and signal states.
+map is main's **fixed-time plans**, the right map is the **same plans with a FlowState controller**. Both sides use the same seed, demand and events; only
+the signal control differs. Nothing is simulated in the browser; the page plays back recorded positions and signal states.
 
 ## What the right side is
 
-Two hand-written rules in `backend/flowstate/replay/`, both acting only on green *durations* (amber, all-red and pedestrian clearance are never shortened
-or skipped), applied through main's `SignalManager` like transit signal priority:
+The page leads with the **featured controller** (`featured_controller` of `GET /api/controllers`, `flowstate.ml.registry`):
 
-* `heuristic.py` – **queue-responsive control**: the Intelligence Lab's queue heuristic ported to any network. Gap-out of empty greens, early switch when
-  the red approaches hold clearly more queued vehicles, short extensions while the green side still holds more queue (min green 10 s, max 60 s).
-* `priority.py` – **ambulance green priority**: extends a green an emergency unit is approaching and ends a conflicting green once it has served its
-  minimum. It cannot turn a red green directly.
+* the **learned policy (PPO)** while its model file is present, matches its manifest and the publication gate in `artifacts/ml/evaluation.json` says
+  `verified`: one shared network picks hold / end / extend for every signal every 5 s, restricted to safe timings, with ambulance green priority beside it;
+* otherwise the **FlowState rules** (`backend/flowstate/replay/`: `heuristic.py` queue-responsive green durations, `priority.py` ambulance green priority;
+  hand-written, no model).
 
-**No learned model runs on this network.** The lab's queue forecaster (gradient-boosted trees) was trained on the synthetic 2×2 grid and is not used
-here; the PPO agent is not used anywhere in production. The page's "How to read this" says the same.
+The rules stay the default everywhere else (`default_controller`): the live simulation and a `POST /api/replay` without a controller run the rules. The
+controller picker on the page offers every controller; ones that did not pass the gate are labelled experimental. Every controller acts only on green
+*durations*: amber, all-red, pedestrian clearance and protected-left phases always run their programmed length.
 
 ## How the numbers are made
 
-`python -m flowstate.replay.record --scenarios ambulance,rush_hour,accident,construction --seeds 3100-3107 --out frontend/public/flowstate-demo`
+`python -m flowstate.replay.record --scenarios ambulance,rush_hour,accident,construction --seeds 3100-3107 --controller rl_ppo --out frontend/public/flowstate-demo --eval-out artifacts/replay/district-eval.json`
+(run from `backend/` with the paths adjusted). `index.json` records which controller the runs used.
 
 For every scenario and seed it runs both arms headless (5 minutes each, main's engine, libsumo), records half-second frames for the display seed, and
 computes paired statistics over all seeds: mean per arm, mean paired difference, a 95 % bootstrap interval of the difference, and better/worse run
-counts. Everything shown on the page, including the worse-run counts, comes from `artifacts/replay/district-eval.json`.
+counts. Everything shown in this section, including the worse-run counts, comes from that run.
+
+"Wait" is the whole time a vehicle stood still, every standstill spell summed, over the cars that finished their trip. (SUMO's own accumulated waiting
+time only covers the last 100 s of each vehicle; it is kept in the asset as `waitingWindow`.)
 
 The emergency unit shown first is chosen by a stated rule (queued ≥ 10 s on the fixed-time side and held ≤ 3 s on the right; otherwise the unit that
 gained most) and is therefore a best case; every unit in the run is listed with its own numbers.
 
 ## Limits
 
-* 8 paired seeds per scenario is a small sample; read the intervals before the percentages.
+* 8 paired seeds per scenario is a small sample; read the intervals before the percentages. The held-out evaluation further down the page
+  (80 seeds × 6 scenarios) is the evidence; this section is an illustration.
+* The replay figures are not comparable with the held-out evaluation's: 5-minute runs and finished cars only here, against every departed vehicle there.
+* The learned policy was trained on rush hour, construction, accident, weather and transit. The ambulance scenario was not a training scenario.
 * Unit trip time is the call-to-scene leg only.
-* The two arms differ only in the two rules above, so the comparison isolates them; it does not include SUMO's built-in actuated programs.
+* Demand is a seeded model, not calibrated to Toronto counts.

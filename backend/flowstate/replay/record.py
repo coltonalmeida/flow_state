@@ -1,6 +1,6 @@
 """Record paired replays on the real ``district`` network for several of main's scenarios, plus a small paired evaluation for each.
 
-    python -m flowstate.replay.record --scenarios ambulance,rush_hour,accident,construction --seeds 3100-3107 --out ../frontend/public/flowstate-demo
+    python -m flowstate.replay.record --scenarios ambulance,rush_hour,accident,construction --seeds 3100-3107 --controller rl_ppo --out ../frontend/public/flowstate-demo
 
 Arms (same seed, same demand, same events):
 * ``left``  = ``fixed`` signals (main's pre-timed plans) with no extra rules;
@@ -125,7 +125,9 @@ def run(seed: int, arm: str, scenario_id: str = "ambulance", frames: bool = True
         tr = eng.tracked.get(vid)
         rt = tr.data.get("responseTime") if tr else None
         u.update({"travelS": rt, "finished": rt is not None, "freeFlowS": tr.data.get("freeFlow") if tr else None, "id": ids.get(vid)})
-    cars = res["metrics"]["byMode"].get("car", {})
+    cars = dict(res["metrics"]["byMode"].get("car", {}))
+    if cars.get("waitTotal") is not None:  # the page's wait is the whole time stood still, as in the held-out evaluation, not SUMO's 100 s window
+        cars["waitingWindow"], cars["waiting"] = cars.get("waiting"), cars.pop("waitTotal")
     fin = [u for u in units.values() if u["finished"]]
     metrics = {
         "ev_total": len(units), "ev_unfinished": len(units) - len(fin),
@@ -307,7 +309,7 @@ def main(argv: list[str] | None = None) -> None:
     from ..network.geometry import network_geometry
 
     (out / "district-network.json").write_text(json.dumps(network_geometry(str(NETWORKS_DIR / "district.net.xml"), "district"), separators=(",", ":")))
-    index = {"network": "district", "builtAt": time.strftime("%Y-%m-%dT%H:%M:%S"), "seeds": seeds, "scenarios": []}
+    index = {"network": "district", "builtAt": time.strftime("%Y-%m-%dT%H:%M:%S"), "seeds": seeds, "controller": right["used"], "status": right["status"], "scenarios": []}
     ev_all: dict[str, Any] = {"builtAt": index["builtAt"], "seeds": seeds, "arms": {"left": "fixed_time", "right": ASSET_CONTROLLER.get(right["used"], right["used"])}, "scenarios": {}}
     for sc in scenarios:
         pairs = [r for (sid, _s, _f, _c), r in zip(jobs, results) if sid == sc]

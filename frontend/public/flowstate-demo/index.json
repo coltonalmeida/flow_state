@@ -1,6 +1,6 @@
 {
  "network": "district",
- "builtAt": "2026-10-18T06:47:19",
+ "builtAt": "2026-11-13T23:03:07",
  "seeds": [
   3100,
   3101,
@@ -11,6 +11,8 @@
   3106,
   3107
  ],
+ "controller": "rl_ppo",
+ "status": "verified",
  "scenarios": [
   {
    "id": "ambulance",
@@ -22,11 +24,11 @@
     "label": "Call-to-scene time",
     "unit": "s",
     "left": 135.562,
-    "right": 112.756,
-    "pct": -16.82,
+    "right": 110.931,
+    "pct": -18.17,
     "ci95": [
-     -43.269,
-     -0.813
+     -46.994,
+     -4.929
     ],
     "better": 7,
     "worse": 1
@@ -41,12 +43,12 @@
     "key": "car_waiting",
     "label": "Mean wait per vehicle",
     "unit": "s",
-    "left": 24.55,
-    "right": 20.613,
-    "pct": -16.04,
+    "left": 37.9,
+    "right": 29.863,
+    "pct": -21.21,
     "ci95": [
-     -4.875,
-     -3.162
+     -9.762,
+     -6.537
     ],
     "better": 8,
     "worse": 0
@@ -61,12 +63,12 @@
     "key": "car_waiting",
     "label": "Mean wait per vehicle",
     "unit": "s",
-    "left": 24.825,
-    "right": 21.338,
-    "pct": -14.05,
+    "left": 37.962,
+    "right": 31.238,
+    "pct": -17.71,
     "ci95": [
-     -4.838,
-     -2.15
+     -8.375,
+     -5.2
     ],
     "better": 8,
     "worse": 0
@@ -81,12 +83,12 @@
     "key": "car_waiting",
     "label": "Mean wait per vehicle",
     "unit": "s",
-    "left": 24.513,
-    "right": 20.975,
-    "pct": -14.43,
+    "left": 38.375,
+    "right": 29.587,
+    "pct": -22.9,
     "ci95": [
-     -4.55,
-     -2.463
+     -10.875,
+     -6.8
     ],
     "better": 8,
     "worse": 0

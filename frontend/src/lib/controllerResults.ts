@@ -93,7 +93,10 @@ export interface ControllerResults {
   source: { file: string; builtAt: string | null; split: string | null; seeds: number[]; note: string | null }
   network: { id: string; description: string }
   baseline: ControllerId
+  /** the controller the headline compares with fixed-time */
   flowstate: ControllerId
+  /** the hand-written rules: the reference of the publication gate and of the controller table */
+  rules?: ControllerId
   controllers: Partial<Record<ControllerId, ControllerInfo>>
   safety: { minGreen: string; maxGreen: number; decision: number; note: string }
   scenarios: { id: string; title: string; description: string; heldOut: boolean }[]
