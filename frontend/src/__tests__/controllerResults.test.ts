@@ -30,35 +30,27 @@ describe('recorded results', () => {
   it('uses the new schema', () => {
     expect(results.schema).toBe('flowstate.controller-results/2')
     expect(results.baseline).toBe('fixed_time')
-    // the headline features the learned policy only while the gate has verified it; the rules are always the reference
-    expect(results.flowstate).toBe(results.controllers.rl_ppo?.status === 'verified' ? 'rl_ppo' : 'queue_responsive')
-    expect(results.rules).toBe('queue_responsive')
+    expect(results.flowstate).toBe('rl_ppo')
     expect(results.network.id).toBe('district')
   })
-  it('lists the controllers present, baseline first, and the default is not experimental', () => {
-    const ids = presentControllers()
-    expect(ids[0]).toBe('fixed_time')
-    expect(ids).toContain('queue_responsive')
-    expect(isExperimental(results.controllers.queue_responsive?.status)).toBe(false)
+  it('holds exactly two controllers: fixed-time and a verified agent', () => {
+    expect(presentControllers()).toEqual(['fixed_time', 'rl_ppo'])
+    expect(Object.keys(results.controllers).sort()).toEqual(['fixed_time', 'rl_ppo'])
+    expect(results.controllers.rl_ppo?.status).toBe('verified')
+    expect(isExperimental(results.controllers.rl_ppo?.status)).toBe(false)
+    expect(new Set(results.results.runs.map((r) => r.c))).toEqual(new Set<ControllerId>(['fixed_time', 'rl_ppo']))
+    expect(Object.keys(results.results.vsFixed.overall).sort()).toEqual(['fixed_time', 'rl_ppo'])
   })
-  it('flags every trained model that failed the gate as experimental, with its failed checks', () => {
-    for (const id of ['ml_forecast', 'rl_ppo'] as ControllerId[]) {
-      const c = results.controllers[id]
-      if (!c) continue
-      expect(c.gate).toBeDefined()
-      if (c.gate!.failed.length) expect(c.status).toBe('experimental')
-    }
-  })
-  it('pairs every controller run with a fixed-time run on the same demand', () => {
+  it('pairs every agent run with a fixed-time run on the same demand', () => {
     const r = results.results
-    const p = pairs(r, 'fixed_time', 'queue_responsive')
+    const p = pairs(r, 'fixed_time', 'rl_ppo')
     expect(p.length).toBe(r.pairs)
-    expect(r.vsFixed.overall.queue_responsive?.metrics.mean_wait_s?.vs?.paired).toBe(p.length)
+    expect(r.vsFixed.overall.rl_ppo?.metrics.mean_wait_s?.vs?.paired).toBe(p.length)
   })
   it('agrees with the stored win count', () => {
     const r = results.results
-    const wins = pairs(r, 'fixed_time', 'queue_responsive').filter((x) => x.b.wait < x.a.wait).length
-    expect(wins).toBe(r.vsFixed.overall.queue_responsive?.metrics.mean_wait_s?.vs?.better)
+    const wins = pairs(r, 'fixed_time', 'rl_ppo').filter((x) => x.b.wait < x.a.wait).length
+    expect(wins).toBe(r.vsFixed.overall.rl_ppo?.metrics.mean_wait_s?.vs?.better)
   })
   it('holds one scenario out', () => {
     expect(results.scenarios.filter((s) => s.heldOut).map((s) => s.id)).toEqual(['stadium'])

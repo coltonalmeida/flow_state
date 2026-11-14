@@ -29,12 +29,12 @@ SCENARIO_TABLE = {
     "disruption": ("Random Urban Disruption", "Seeded mix of incidents and surges."),
 }
 
+# The page shows two controllers: the signals before the agent (fixed-time) and after it. The evaluation file holds more arms (the hand-written rules the
+# gate compares against, and controllers that did not pass); they are not copied.
+AGENT = "rl_ppo"
 CONTROLLER_TABLE = {
     "fixed_time": {"title": "Fixed-time", "detail": "The pre-timed signal plans; ignores traffic.", "status": "baseline"},
-    "queue_responsive": {"title": "FlowState rules", "detail": "Queue-responsive green durations on the fixed plans (gap-out, switch on demand, extend) plus ambulance green priority. Hand-written rules, no model.", "status": "default"},
-    "safe_heuristic": {"title": "Safe rule reference", "detail": "The same queue rule evaluated per approach under the ML safety contract. No trained model; included to separate the safety contract from the model.", "status": "reference"},
-    "ml_forecast": {"title": "Forecast-assisted rules", "detail": "The queue rule with a trained 30 s queue forecast (bounded demand shift, predicted spillback).", "status": "experimental"},
-    "rl_ppo": {"title": "Learned policy (PPO)", "detail": "One shared network picks hold / end / extend for every signal every 5 s, restricted to safe timings.", "status": "experimental"},
+    AGENT: {"title": "FlowState ML agent", "detail": "One shared network picks hold / end / extend for every signal every 5 s, restricted to safe timings.", "status": "experimental"},
 }
 ORDER = list(CONTROLLER_TABLE)
 
@@ -66,30 +66,22 @@ def main(src: Path) -> None:
     d = json.loads(src.read_text(encoding="utf-8"))
     meta = d["meta"]
     present = [c for c in ORDER if c in meta["arms"]]
-    controllers = {}
-    for c in present:
-        entry = dict(CONTROLLER_TABLE[c])
-        g = d.get("gate", {}).get(c)
-        if g:
-            if c in ("ml_forecast", "rl_ppo"):
-                entry["status"] = g["status"]  # the gate decides for trained models, not the table
-            entry["gate"] = {"status": g["status"], "failed": g.get("failed", []), "checks": g.get("checks", {}), "pairs": g.get("pairs"),
-                             "meanWaitDiffS": g.get("mean_wait_diff_s"), "meanWaitCi95": g.get("mean_wait_ci95"),
-                             "timeLossDiffS": g.get("time_loss_diff_s"), "timeLossCi95": g.get("time_loss_ci95"),
-                             "teleportsDiff": g.get("teleports_diff"), "throughputPct": g.get("throughput_pct"), "unservedDiff": g.get("unserved_diff"),
-                             "margins": g.get("margins"), "scenarioRegressions": g.get("scenario_regressions", [])}
-        controllers[c] = entry
+    if AGENT not in present:
+        raise SystemExit(f"{src} has no {AGENT} arm")
+    status = d.get("gate", {}).get(AGENT, {}).get("status")
+    if status != "verified":  # the page presents the agent as FlowState; it may only do so while the held-out gate says verified
+        raise SystemExit(f"{AGENT} is '{status}' in {src}: the Results page only features a verified agent")
+    controllers = {c: dict(CONTROLLER_TABLE[c]) for c in present}
+    controllers[AGENT]["status"] = status
     heldout = meta.get("heldout_scenario")
     scenarios = [{"id": s, "title": SCENARIO_TABLE.get(s, (s, ""))[0], "description": SCENARIO_TABLE.get(s, (s, ""))[1], "heldOut": s == heldout} for s in meta["scenarios"]]
-    fixed, rules = d["vs_fixed_time"], d["vs_queue_responsive"]
+    fixed = d["vs_fixed_time"]
     out = {
         "schema": "flowstate.controller-results/2",
         "source": {"file": src.name, "builtAt": meta.get("built_at"), "split": meta.get("split"), "seeds": meta["seeds"], "note": meta.get("note")},
         "network": {"id": "district", "description": "Toronto King West district, 22 signals"},
         "baseline": "fixed_time",
-        # what the headline compares with fixed-time: the learned policy once the gate has verified it, otherwise the rules
-        "flowstate": "rl_ppo" if controllers.get("rl_ppo", {}).get("status") == "verified" else "queue_responsive",
-        "rules": "queue_responsive",
+        "flowstate": AGENT,
         "controllers": controllers,
         "safety": {"minGreen": "8-12", "maxGreen": 60, "hardMaxGreen": 80, "decision": 5,
                    "note": "amber, all-red, pedestrian clearance and protected-left phases always run their programmed length; transit and ambulance priority can hold a green to at most 80 s"},
@@ -99,7 +91,6 @@ def main(src: Path) -> None:
             "episodes": fixed["episodes"],
             "pairs": fixed["pairs"],
             "vsFixed": slim_summary(fixed),
-            "vsRules": slim_summary(rules),
             "runs": [
                 {"c": e["arm"], "s": e["scenario"], "seed": e["seed"], "wait": round(e["mean_wait_s"], 2), "loss": round(e["mean_time_loss_s"], 2),
                  "queueMax": e["queue_max_veh"], "teleports": e["teleports"]}

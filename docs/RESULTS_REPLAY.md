@@ -6,16 +6,18 @@ the signal control differs. Nothing is simulated in the browser; the page plays 
 
 ## What the right side is
 
-The page leads with the **featured controller** (`featured_controller` of `GET /api/controllers`, `flowstate.ml.registry`):
+The Results tab shows two versions only: the signals **before the agent** (fixed-time) and **after the agent** (the FlowState ML agent).
 
-* the **learned policy (PPO)** while its model file is present, matches its manifest and the publication gate in `artifacts/ml/evaluation.json` says
-  `verified`: one shared network picks hold / end / extend for every signal every 5 s, restricted to safe timings, with ambulance green priority beside it;
-* otherwise the **FlowState rules** (`backend/flowstate/replay/`: `heuristic.py` queue-responsive green durations, `priority.py` ambulance green priority;
-  hand-written, no model).
+The agent is the PPO policy in `artifacts/ml/rl/`: one shared network picks hold / end / extend for every signal every 5 s, restricted to safe timings,
+with ambulance green priority beside it. It acts only on green *durations*: amber, all-red, pedestrian clearance and protected-left phases always run
+their programmed length.
 
-The rules stay the default everywhere else (`default_controller`): the live simulation and a `POST /api/replay` without a controller run the rules. The
-controller picker on the page offers every controller; ones that did not pass the gate are labelled experimental. Every controller acts only on green
-*durations*: amber, all-red, pedestrian clearance and protected-left phases always run their programmed length.
+The page asks the backend for the agent by name (`POST /api/replay` with `controller: "rl_ppo"`). If the model file is missing or does not match its
+manifest, the backend falls back to the hand-written queue rules and the page says so above the right-hand map.
+
+Not shown on the page, but still in the repository: the hand-written rules (`backend/flowstate/replay/`), the forecast-assisted controller, and their
+held-out results in `artifacts/ml/evaluation.json`. The agent is labelled verified because it passed the publication gate against those rules there;
+`frontend/scripts/extract_controller_results.py` refuses to build the page's data file if the agent is not verified.
 
 ## How the numbers are made
 
