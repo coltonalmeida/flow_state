@@ -25,7 +25,6 @@ flowchart LR
     S -- "green durations" --> T
     T --> A["FastAPI<br/>REST + WebSocket"]
     A --> U["React dashboard"]
-    A -.-> G["Gemini<br/>explanations, experiment planning"]
 ```
 
 1. **Real-world data.** Road geometry comes from OpenStreetMap: the street lines, classes, one-way pairs and names of King West
@@ -35,20 +34,19 @@ flowchart LR
    uses libsumo, SUMO's in-process binding, to observe every vehicle and to set signal timings programmatically.
 3. **Reinforcement learning.** One PPO agent controls all 22 King West signals. Every 5 seconds each junction gets its own
    observation (queues, waiting, downstream occupancy, time in green) and the shared network picks hold, end or extend for its
-   green. It is trained in PyTorch on SUMO episodes of five scenarios, with halting vehicles as the cost, and selected on separate
-   validation seeds.
+   green. It is trained in PyTorch with a behaviour-cloning warm start followed by PPO, on SUMO episodes of five scenarios, with
+   halting vehicles as the cost, and the checkpoint is selected on separate validation seeds.
 4. **Safety limits.** The agent only changes how long a green lasts. Amber, all-red, pedestrian clearance and protected-left
    phases always run their programmed length and the phase order is the plan's. A green cannot end before its minimum (8 to 12 s
    by intersection type) or be extended past 60 s, and no combination with transit or ambulance priority holds one past 80 s.
    The agent can only choose among timings these limits allow.
-5. **Gemini.** Google's Gemini API powers the plain-language layer: it explains congestion patterns, interprets results and helps
-   plan experiments. It never touches the signals. Its answers are checked against the measured simulation numbers, and there
-   is an offline fallback when no key is available.
-6. **Backend.** The FastAPI service and the SUMO engine run on a Vultr server in Toronto and expose REST endpoints and a WebSocket, so
-   simulations run remotely and stream traffic to the browser in real time.
-7. **Frontend.** The React dashboard is hosted on Vercel at flowstate.nyc. It shows the Toronto network, moving vehicles, signal
-   states, congestion metrics and the before/after comparison.
-8. **Evaluation.** Fixed-time signals and the agent are run in SUMO on identical demand, on seeds the agent never trained on. We
+5. **Backend.** The FastAPI service and the SUMO engine deploy to Render as a single Docker web service (`render.yaml`,
+   `deployment/render/Dockerfile`, setup in `docs/RENDER.md`). It exposes REST endpoints and a WebSocket, so simulations run
+   remotely and stream traffic to the browser in real time. It runs as one instance with a persistent disk for run results,
+   because the live run is held in process memory.
+6. **Frontend.** The React dashboard deploys to Vercel (`vercel.json`, `frontend/vercel.json`). It shows the Toronto network, moving
+   vehicles, signal states, congestion metrics and the before/after comparison.
+7. **Evaluation.** Fixed-time signals and the agent are run in SUMO on identical demand, on seeds the agent never trained on. We
    measure waiting time, time lost, queue length, throughput, trips not served and safety outcomes (collisions and teleports).
 
 ### Where each stage lives
@@ -82,7 +80,7 @@ scenario (`backend/flowstate/ml/evaluate.py`). The Results tab in the app shows 
 
 - 11 scenarios, listed below, each with parameters you can set or leave to the seed.
 - Follow a single vehicle, click a junction to see its phase and queues, click an event to jump to it.
-- Pause, change speed (0.5x to 16x), restart with the same seed, or draw a new variation.
+- Pause, change speed (1x to 16x), restart with the same seed, or draw a new variation.
 - A **controlled comparison** runs two headless SUMO runs on the same seed that differ in one setting: signal control, weather, King
   Street design and so on.
 
@@ -137,6 +135,9 @@ python -m flowstate.cli serve --port 8000                # terminal 1
 cd frontend && npm install && npm run dev                # terminal 2
 ```
 
+Training or re-evaluating the agent needs the ML extras (NumPy, SciPy, CPU PyTorch), which the deploy image leaves out:
+`pip install -r backend/requirements.txt -r backend/requirements-ml.txt --extra-index-url https://download.pytorch.org/whl/cpu`.
+
 The CLI also runs a scenario without the UI and prints the results as JSON:
 `python -m flowstate.cli run --scenario rush_hour --seed 42`.
 
@@ -146,8 +147,8 @@ side panels, `+`/`-` zoom.
 ## Tests
 
 ```bash
-python -m pytest tests -q                 # 177 tests: API, WebSocket, network, scenarios, real SUMO runs
-cd frontend && npm test && npm run build  # 43 unit tests, then a type-checked production build
+python -m pytest tests -q                 # 221 tests: API, WebSocket, network, scenarios, ML, real SUMO runs
+cd frontend && npm test && npm run build  # 59 unit tests, then a type-checked production build
 ```
 
 The Python suite includes real SUMO runs (scenario placement, closures, responders, reproducibility), so the full run takes about
@@ -161,20 +162,23 @@ backend/flowstate/
   sim/        SUMO engine loop, demand, signals, driver models, metrics, safety observations
   scenarios/  scenario framework and the 11-scenario catalog
   api/        REST + WebSocket server and the live run service
+  ml/         the agent: topology, features, policies, PPO training, held-out evaluation and publication gate
+  replay/     recorded side-by-side replays, ambulance green priority
   performance/  benchmark and audit tooling (congestion presets, resource measurement)
 frontend/src/
   map/        Canvas 2D renderer: road scene, vehicle sprites, camera, overlays
   views/      Analytics, Run history, Results
   components/ rails, panels, run bar     lib/  state store, WebSocket client, frame playout
+artifacts/ml/ trained PPO policy, its training manifest and the held-out evaluation
 data/         committed networks and OpenStreetMap extracts
+deployment/   Render Dockerfile
 tests/        pytest suite          tools/  congestion audits, OSM fetch          docs/  deployment, performance and audit notes
 ```
 
 ## Built with
 
-Python, FastAPI, Eclipse SUMO 1.28 (libsumo, netconvert, sumolib), Stable-Baselines3, Gymnasium, PPO, scikit-learn (gradient-boosted
-regressors), Google Gemini, React 19, TypeScript, Vite, Tailwind, Radix UI, Zustand, Recharts, Canvas 2D, pytest, Vitest, Vultr,
-Vercel.
+Python, FastAPI, Eclipse SUMO 1.28 (libsumo, netconvert, sumolib), PyTorch (PPO implemented in this repo), NumPy, SciPy, React 19,
+TypeScript, Vite, Tailwind, Radix UI, Zustand, Recharts, Canvas 2D, pytest, Vitest, Docker, Render, Vercel.
 
 Map data is © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright) (ODbL). Traffic counts come from the City of
 Toronto's [open data](https://open.toronto.ca/open-data-licence/).
