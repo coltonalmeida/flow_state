@@ -42,8 +42,9 @@ export function MapControls() {
   }, [open])
 
   // Sits under the right panel, which stops short of the run bar to make room.
+  // Stacks above the panel (z-20) so the Layers popup isn't hidden behind it.
   return (
-    <div className="absolute bottom-[76px] right-3 z-10 flex flex-row items-end gap-2" ref={ref}>
+    <div className="absolute bottom-[76px] right-3 z-30 flex flex-row items-end gap-2" ref={ref}>
       <div className="glass flex flex-row gap-0.5 rounded-xl p-1">
         <ToolButton label="Zoom in (+)" onClick={() => mapApi.current?.zoom(1.6)}>
           <Plus size={15} />
