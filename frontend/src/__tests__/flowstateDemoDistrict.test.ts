@@ -29,18 +29,16 @@ describe('schema 2 (district) assets', () => {
   })
 })
 
-describe('schema 4 (controller choice)', () => {
-  it('sends controller only when it is not the default', async () => {
+describe('schema 4 (the agent on the right)', () => {
+  it('always names the controller in the replay request', async () => {
     const { replayBody } = await import('../lib/flowstateDemo')
-    expect(replayBody('rush_hour', null)).toEqual({ scenario: 'rush_hour', seed: null })
-    expect(replayBody('rush_hour', null, 'queue_responsive', 'queue_responsive')).toEqual({ scenario: 'rush_hour', seed: null })
-    expect(replayBody('rush_hour', 3, 'rl_ppo', 'queue_responsive')).toEqual({ scenario: 'rush_hour', seed: 3, controller: 'rl_ppo' })
+    expect(replayBody('rush_hour', null, 'rl_ppo')).toEqual({ scenario: 'rush_hour', seed: null, controller: 'rl_ppo' })
+    expect(replayBody('rush_hour', 3, 'rl_ppo')).toEqual({ scenario: 'rush_hour', seed: 3, controller: 'rl_ppo' })
   })
-  it('labels the right pane; schema 3 assets are the FlowState rules', async () => {
+  it('labels the right pane and flags an unverified model', async () => {
     const { rightPane } = await import('../lib/flowstateDemo')
-    expect(rightPane({})).toEqual({ id: 'queue_responsive', name: 'FlowState', experimental: false, fallback: null })
-    const p = rightPane({ rightController: 'rl_ppo', rightStatus: 'experimental', fallback: null }, { rl_ppo: 'Learned policy (PPO)' })
-    expect(p).toMatchObject({ name: 'Learned policy (PPO)', experimental: true })
-    expect(rightPane({ rightController: 'queue_responsive', rightStatus: 'default', fallback: 'no trained model on this installation' }).fallback).toMatch(/no trained model/)
+    expect(rightPane({})).toEqual({ id: 'rl_ppo', name: 'FlowState', experimental: false })
+    expect(rightPane({ rightController: 'rl_ppo', rightStatus: 'verified' }, { rl_ppo: 'FlowState ML agent' })).toEqual({ id: 'rl_ppo', name: 'FlowState ML agent', experimental: false })
+    expect(rightPane({ rightController: 'rl_ppo', rightStatus: 'experimental' }, { rl_ppo: 'FlowState ML agent' }).experimental).toBe(true)
   })
 })

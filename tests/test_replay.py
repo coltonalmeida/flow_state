@@ -38,13 +38,6 @@ def test_asset_lists_every_ambulance_and_picks_by_rule():
     assert doc["units"][0]["right"]["id"] == 50 and doc["codes"] == "main" and doc["network"] == "district" and doc["kpis"][0]["key"] == "ev_travel_mean_s"
 
 
-def test_queue_rule_summary():
-    from flowstate.replay.heuristic import QueueResponsive
-
-    q = QueueResponsive()
-    assert q.summary()["gapOuts"] == 0 and "min 10 s" in q.summary()["rule"]
-
-
 def test_priority_rule_constants_and_summary():
     p = EmergencyPriority()
     assert MIN_GREEN_S >= 7.0 and MAX_EXTENSION_S <= 30.0
@@ -52,33 +45,25 @@ def test_priority_rule_constants_and_summary():
     assert s["extensions"] == 0 and s["earlyEnds"] == 0 and "no skipped amber" in s["rule"]
 
 
-def test_run_rejects_unknown_controller_and_maps_aliases():
+def test_run_rejects_unknown_controller():
     import pytest
 
     from flowstate.replay import record
 
     with pytest.raises(ValueError):
         record.run(1, "nope", "rush_hour", False)
-    assert record.ARM_ALIASES["flowstate"] == "queue_responsive" and record.ASSET_CONTROLLER["queue_responsive"] == "flowstate_rules"
-    assert set(record.ARM_IDS) == {"fixed_time", "queue_responsive", "safe_heuristic", "ml_forecast", "rl_ppo"}
+    assert set(record.ARM_IDS) == {"fixed_time", "rl_ppo"}
 
 
-def test_right_includes_is_truthful_for_experimental_models():
+def test_right_includes_claims_nothing_for_an_unverified_model():
     from flowstate.replay.record import right_includes
 
-    assert "did not pass the held-out publication gate" in right_includes("rl_ppo", "experimental")
-    assert "did not pass" in right_includes("ml_forecast", "experimental")
-    assert "no learned model" in right_includes("queue_responsive", "default")
-    assert "no trained model" in right_includes("safe_heuristic", "experimental")
+    assert "has not passed the held-out publication gate" in right_includes("rl_ppo", "experimental")
+    assert "has not passed" not in right_includes("rl_ppo", "verified") and "trained reinforcement-learning agent" in right_includes("rl_ppo", "verified")
 
 
-def test_compare_one_falls_back_when_controller_unavailable(monkeypatch, tmp_path):
+def _inline(monkeypatch, record, calls):
     from concurrent.futures import Future
-
-    from flowstate.replay import record
-
-    monkeypatch.setenv("FLOWSTATE_ML_DIR", str(tmp_path))
-    calls = []
 
     class Inline:
         def __init__(self, *a, **k): pass
@@ -92,18 +77,46 @@ def test_compare_one_falls_back_when_controller_unavailable(monkeypatch, tmp_pat
     def fake_run(seed, arm, scenario_id="x", frames=True):
         calls.append(arm)
         r = _run(seed, 1.0, 1.0, 1.0)
-        r.update({"network": "district", "controller": record.ASSET_CONTROLLER.get(arm, arm)})
+        r.update({"network": "district", "controller": arm})
         return r
 
     monkeypatch.setattr(record, "run", fake_run)
     monkeypatch.setattr(record, "ProcessPoolExecutor", Inline)
-    doc = record.compare_one("rush_hour", 5, "rl_ppo")
-    assert calls == ["fixed_time", "queue_responsive"]
-    assert doc["schema"] == "flowstate.results-demo/4" and doc["rightController"] == "queue_responsive" and doc["rightStatus"] == "default"
-    assert doc["fallback"] and doc["right"]["controller"] == "flowstate_rules"
-    calls.clear()
+
+
+def test_compare_one_runs_fixed_time_against_the_agent_by_default(monkeypatch):
+    from flowstate.replay import record
+
+    calls = []
+    _inline(monkeypatch, record, calls)
     doc = record.compare_one("rush_hour", 5)
-    assert calls == ["fixed_time", "queue_responsive"] and doc["fallback"] is None
+    assert calls == ["fixed_time", "rl_ppo"]
+    assert doc["schema"] == "flowstate.results-demo/4" and doc["rightController"] == "rl_ppo" and doc["right"]["controller"] == "rl_ppo"
+    assert doc["rightStatus"] == "verified" and "fallback" not in doc
+
+
+def test_compare_one_refuses_when_the_model_is_missing(monkeypatch, tmp_path):
+    import pytest
+
+    from flowstate.ml.registry import ControllerUnavailable
+    from flowstate.replay import record
+
+    monkeypatch.setenv("FLOWSTATE_ML_DIR", str(tmp_path))
+    calls = []
+    _inline(monkeypatch, record, calls)
+    with pytest.raises(ControllerUnavailable):
+        record.compare_one("rush_hour", 5)
+    assert calls == [], "something was simulated in place of the missing agent"
+
+
+def test_replay_endpoint_reports_a_missing_model(monkeypatch, tmp_path):
+    from fastapi.testclient import TestClient
+
+    from flowstate.api.app import app
+
+    monkeypatch.setenv("FLOWSTATE_ML_DIR", str(tmp_path))
+    r = TestClient(app).post("/api/replay", json={"scenario": "rush_hour", "seed": 1})
+    assert r.status_code == 503 and "no trained model" in r.json()["detail"]
 
 
 def test_replay_endpoint_rejects_unknown_controller():

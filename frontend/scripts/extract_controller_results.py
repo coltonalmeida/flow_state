@@ -29,8 +29,7 @@ SCENARIO_TABLE = {
     "disruption": ("Random Urban Disruption", "Seeded mix of incidents and surges."),
 }
 
-# The page shows two controllers: the signals before the agent (fixed-time) and after it. The evaluation file holds more arms (the hand-written rules the
-# gate compares against, and controllers that did not pass); they are not copied.
+# The page shows two controllers: the signals before the agent (fixed-time) and after it.
 AGENT = "rl_ppo"
 CONTROLLER_TABLE = {
     "fixed_time": {"title": "Fixed-time", "detail": "The pre-timed signal plans; ignores traffic.", "status": "baseline"},

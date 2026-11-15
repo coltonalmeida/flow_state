@@ -370,15 +370,14 @@ export function SideBySide() {
     fetch('/api/scenarios').then((r) => (r.ok ? r.json() : [])).then((list: CatalogScenario[]) => { if (live) setCatalog(Array.isArray(list) ? list : []) }, () => {}).finally(() => { if (live) setCatalogReady(true) })
     return () => { live = false }
   }, [])
-  // what the recorded runs show (assets recorded before the index named it are the hand-written rules, which this page does not present)
-  const recordedCtl = (index && !('error' in index) ? index.controller : null) ?? 'queue_responsive'
+  const recordedCtl = index && !('error' in index) ? index.controller : null // the controller the pre-recorded runs used
   useEffect(() => {
     if (!tab || !index || 'error' in index || data[tab] || !catalogReady) return
     let live = true
     const recorded = index.scenarios.some((x) => x.id === tab)
     const live_ = catalog.length > 0 // with the simulation backend every scenario, including the first one, is simulated now; without it the recorded runs are shown
     setBusy(live_); setError(null); setStarted(performance.now())
-    // the pre-recorded runs stand in for a live one only when they are runs of the agent
+    // if the backend cannot run it (down, or no model file), the pre-recorded runs stand in, but only when they are runs of the agent
     const job = live_ ? runComparison(tab, null, AGENT).catch(() => (recorded && AGENT === recordedCtl ? loadScenario(tab) : Promise.reject(new Error('Simulation backend unreachable')))) : loadScenario(tab)
     job.then(async (asset) => {
       const net = await loadNetwork(asset.network ?? index.network)
@@ -557,7 +556,7 @@ function Player({ data, titles, example, setExample }: { data: Loaded; titles: R
   const bestCase = !!unit && stops(unit.right) <= asset.bestCaseStopS && unit.left.stoppedQueueS >= asset.minQueueS
   const sides = [
     { name: 'Fixed-time', sub: 'Pre-timed signal plans', side: asset.left, span: unit?.left, evId: unit ? sideId(unit, 'left') : null, label: 'Fixed-time map' },
-    { name: right.name, sub: right.id === 'queue_responsive' ? 'Same plans + FlowState rules' : `Same plans + ${right.name}`, side: asset.right, span: unit?.right, evId: unit ? sideId(unit, 'right') : null, label: `${right.name} map` },
+    { name: right.name, sub: `Same plans + ${right.name}`, side: asset.right, span: unit?.right, evId: unit ? sideId(unit, 'right') : null, label: `${right.name} map` },
   ] as const
   const focusText = asset.focus?.kind === 'junction' ? `Watching the busiest junction: ${asset.focus.label ?? ''}` : asset.focus?.kind === 'point' ? `Watching the ${asset.focus.label ?? 'incident'} site` : null
 
@@ -581,7 +580,6 @@ function Player({ data, titles, example, setExample }: { data: Loaded; titles: R
             <div className="flex flex-col items-center gap-1.5 text-center">
               <span className="text-[13px] leading-none text-ink-3">{x.sub}</span>
               {x.side === asset.right && right.experimental && <span className="max-w-[420px] text-[12px] leading-[1.4] text-warn">Did not pass the held-out publication gate; shown for reference, not as an improvement.</span>}
-              {x.side === asset.right && right.fallback && <span className="max-w-[420px] text-[12px] leading-[1.4] text-ink-2">Showing the FlowState rules instead: {right.fallback}.</span>}
               {x.evId != null && x.span && unit ? <UnitTag side={x.side} id={x.evId} t={t} span={x.span} label={unit.label ?? 'Ambulance'} /> : focusText && <div className="text-[13px] leading-none text-ink-2">{focusText}</div>}
             </div>
           </div>

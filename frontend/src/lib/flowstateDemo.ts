@@ -1,4 +1,4 @@
-// Side-by-side replay for the Results page: one recorded SUMO pair (same seed, same demand), fixed-time signals vs FlowState.
+// Side-by-side replay for the Results page: one recorded SUMO pair (same seed, same demand), fixed-time signals vs the FlowState ML agent.
 // The asset is produced by `python -m flowstate.replay.record` (backend/flowstate/replay) from real runs on the `district` network; nothing is simulated in the browser.
 import type { NetworkGeom } from './types'
 
@@ -32,10 +32,9 @@ export interface DemoAsset {
   totals: { left: DemoTotals; right: DemoTotals }
   aggregate: { episodes: number; seeds: number[]; metrics: Record<string, AggStat> }
   rightIncludes: string
-  /** schema 4: the controller actually run on the right, its publication status, and why it differs from the one requested (if it does) */
+  /** schema 4: the controller run on the right and its publication status */
   rightController?: string
-  rightStatus?: 'baseline' | 'default' | 'reference' | 'verified' | 'experimental' | 'unavailable'
-  fallback?: string | null
+  rightStatus?: 'baseline' | 'verified' | 'experimental' | 'unavailable'
   /** schema 3 */
   units?: DemoUnit[]
   focus?: DemoFocus
@@ -45,7 +44,7 @@ export interface DemoAsset {
 }
 
 export interface DemoHeadline { key: string; label: string; unit: string; left: number | null; right: number | null; pct: number | null; ci95: [number, number] | null; better: number | null; worse: number | null }
-export interface DemoIndex { network: string; builtAt: string; seeds: number[]; /** right-hand controller of the recorded runs (absent: the FlowState rules) */ controller?: string; status?: string; scenarios: { id: string; title: string; tagline: string; units: number; headline: DemoHeadline }[] }
+export interface DemoIndex { network: string; builtAt: string; seeds: number[]; /** right-hand controller of the recorded runs */ controller?: string; status?: string; scenarios: { id: string; title: string; tagline: string; units: number; headline: DemoHeadline }[] }
 
 export const STATUS_TEXT = ['moving', 'stopped at a red light', 'stuck behind queued cars', 'moving, green light ahead']
 
@@ -94,21 +93,22 @@ export const loadIndex = () => once('index', () => getJson<DemoIndex>(`${BASE}in
 /** The map description of a recorded network (once per network). */
 export const loadNetwork = (id: string) => once(`net:${id}`, () => getJson<NetworkGeom>(`${BASE}${id}-network.json`, 'Map').catch(() => getJson<NetworkGeom>(`/api/networks/${id}`, 'Map')))
 
-/** Request body of POST /api/replay: `controller` is sent only when it is not the default, so default requests stay as they were. */
-export const replayBody = (scenario: string, seed: number | null, controller?: string | null, defaultController?: string | null) =>
-  controller && controller !== defaultController ? { scenario, seed, controller } : { scenario, seed }
+/** Request body of POST /api/replay. */
+export const replayBody = (scenario: string, seed: number | null, controller: string) => ({ scenario, seed, controller })
 
-/** Title and badge for the right-hand pane. Assets recorded before schema 4 carry no controller and are the FlowState rules. */
-export function rightPane(asset: Pick<DemoAsset, 'rightController' | 'rightStatus' | 'fallback'>, titles: Record<string, string> = {}) {
-  const id = asset.rightController
-  const name = !id || id === 'queue_responsive' ? 'FlowState' : (titles[id] ?? id)
-  return { id: id ?? 'queue_responsive', name, experimental: asset.rightStatus === 'experimental', fallback: asset.fallback ?? null }
+/** Title and badge for the right-hand pane. */
+export function rightPane(asset: Pick<DemoAsset, 'rightController' | 'rightStatus'>, titles: Record<string, string> = {}) {
+  const id = asset.rightController ?? 'rl_ppo'
+  return { id, name: titles[id] ?? 'FlowState', experimental: asset.rightStatus === 'experimental' }
 }
 
-/** Runs fixed-time vs a controller (default: the FlowState rules) for one scenario on the backend (two headless SUMO runs, ~15 s) and returns the recorded pair. */
-export async function runComparison(scenario: string, seed: number | null, controller?: string | null, defaultController?: string | null): Promise<DemoAsset> {
-  const r = await fetch('/api/replay', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(replayBody(scenario, seed, controller, defaultController)) })
-  if (!r.ok) throw new Error(`Simulation failed (${r.status})`)
+/** Runs fixed-time vs the agent for one scenario on the backend (two headless SUMO runs, ~15 s) and returns the recorded pair. */
+export async function runComparison(scenario: string, seed: number | null, controller: string): Promise<DemoAsset> {
+  const r = await fetch('/api/replay', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(replayBody(scenario, seed, controller)) })
+  if (!r.ok) {
+    const detail = await r.json().then((j: { detail?: unknown }) => (typeof j.detail === 'string' ? j.detail : null), () => null)
+    throw new Error(detail ?? `Simulation failed (${r.status})`)
+  }
   return normalise(await gunzipJson<DemoAsset>(r))
 }
 /** One scenario's recorded pair. */

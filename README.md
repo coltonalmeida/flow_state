@@ -1,7 +1,7 @@
 # FlowState
 
 A digital twin of downtown Toronto for traffic-signal control: a simulator that runs real street geometry, a reinforcement learning
-agent and a congestion forecaster that learn from it, and a dashboard that shows controllers competing on identical traffic.
+agent that learns from it, and a dashboard that shows the agent against fixed-time signals on identical traffic.
 
 FlowState runs [Eclipse SUMO](https://eclipse.dev/sumo/) behind a FastAPI server and draws what SUMO is doing in the browser: real
 street geometry, every car, cyclist and pedestrian, signal heads, collisions, ambulances. You pick a scenario (a rush hour, a crash on
@@ -20,11 +20,9 @@ into the next junctions.*
 ```mermaid
 flowchart LR
     D["OpenStreetMap<br/>Toronto Open Data"] --> T["SUMO digital twin<br/>(King West)"]
-    T -- "libsumo observations" --> F["Queue forecaster<br/>30 s / 60 s ahead"]
-    T -- "libsumo observations" --> C["Signal controllers<br/>fixed-time, adaptive heuristic,<br/>forecast-assisted, PPO policy"]
-    F --> C
-    C --> S["SafeSignal"]
-    S -- "signal states" --> T
+    T -- "libsumo observations" --> C["Signal control<br/>fixed-time plans, or<br/>the PPO agent"]
+    C --> S["Safety limits"]
+    S -- "green durations" --> T
     T --> A["FastAPI<br/>REST + WebSocket"]
     A --> U["React dashboard"]
     A -.-> G["Gemini<br/>explanations, experiment planning"]
@@ -34,65 +32,51 @@ flowchart LR
    (Front St to Queen St, Peter St to Simcoe St). Toronto Open Data supplies the traffic-count context used to model demand.
    Together they make the Toronto digital twin. Both map extracts are committed, so a network build works offline.
 2. **Traffic simulation.** SUMO simulates the vehicles, intersections, congestion, accidents and signal behaviour. The Python backend
-   uses libsumo, SUMO's in-process binding, to observe every vehicle and to set signal states programmatically.
-3. **Reinforcement learning.** A PPO agent is trained with Stable-Baselines3 and a Gymnasium environment wrapped around SUMO. It
-   learns signal policies from interaction, with congestion and delay measurements as the reward. Fixed-time and adaptive heuristic
-   controllers run alongside it as benchmarks, on exactly the same traffic. The PPO agent is trained but has not yet beaten the
-   adaptive heuristic, so the heuristic stays our verified controller.
-4. **Predictive machine learning.** Two gradient-boosted models, trained on 256 SUMO episodes (about 927,000 approach samples), take
-   queue lengths, waiting times, signal states, downstream occupancy and recent history and predict how many vehicles will be
-   halted on each approach 30 and 60 seconds ahead. On held-out seeds the 30 s model cuts prediction error by about 49 % against a
-   persistence baseline (MAE 2.23 vs 4.38 vehicles).
-5. **Signal optimisation.** The controllers decide from live measurements and, in the forecast-assisted version, from the congestion
-   forecast. Every request goes through **SafeSignal**, which always runs the full yellow and all-red, keeps a minimum green
-   (14 s, including pedestrian clearance) and forces a change at the maximum green (60 s). A controller can ask for a switch;
-   it cannot make an unsafe one. We are also testing stronger predictive optimisation strategies aimed at cutting real vehicle waiting
-   times further.
-6. **Gemini.** Google's Gemini API powers the plain-language layer: it explains congestion patterns, interprets results and helps
+   uses libsumo, SUMO's in-process binding, to observe every vehicle and to set signal timings programmatically.
+3. **Reinforcement learning.** One PPO agent controls all 22 King West signals. Every 5 seconds each junction gets its own
+   observation (queues, waiting, downstream occupancy, time in green) and the shared network picks hold, end or extend for its
+   green. It is trained in PyTorch on SUMO episodes of five scenarios, with halting vehicles as the cost, and selected on separate
+   validation seeds.
+4. **Safety limits.** The agent only changes how long a green lasts. Amber, all-red, pedestrian clearance and protected-left
+   phases always run their programmed length and the phase order is the plan's. A green cannot end before its minimum (8 to 12 s
+   by intersection type) or be extended past 60 s, and no combination with transit or ambulance priority holds one past 80 s.
+   The agent can only choose among timings these limits allow.
+5. **Gemini.** Google's Gemini API powers the plain-language layer: it explains congestion patterns, interprets results and helps
    plan experiments. It never touches the signals. Its answers are checked against the measured simulation numbers, and there
    is an offline fallback when no key is available.
-7. **Backend.** The FastAPI service and the SUMO engine run on a Vultr server in Toronto and expose REST endpoints and a WebSocket, so
+6. **Backend.** The FastAPI service and the SUMO engine run on a Vultr server in Toronto and expose REST endpoints and a WebSocket, so
    simulations run remotely and stream traffic to the browser in real time.
-8. **Frontend.** The React dashboard is hosted on Vercel at flowstate.nyc. It shows the Toronto network, moving vehicles, signal
-   states, congestion metrics and controller comparisons.
-9. **Evaluation.** Fixed-time, adaptive, forecast-assisted and RL control are compared in SUMO on identical demand. We measure waiting
-   time, queue length, throughput, travel time, safety outcomes (collisions and teleports) and forecasting accuracy, and feed
-   what we learn back into the next controller.
+7. **Frontend.** The React dashboard is hosted on Vercel at flowstate.nyc. It shows the Toronto network, moving vehicles, signal
+   states, congestion metrics and the before/after comparison.
+8. **Evaluation.** Fixed-time signals and the agent are run in SUMO on identical demand, on seeds the agent never trained on. We
+   measure waiting time, time lost, queue length, throughput, trips not served and safety outcomes (collisions and teleports).
 
 ### Where each stage lives
 
-Not all of this is on `main` yet. The map, scenarios, adaptive controller and Results tab are; the RL and forecasting work sits on
-its own branches.
+| Stage | Code |
+|---|---|
+| Network, simulation engine, scenarios, API | `backend/flowstate/{network,sim,scenarios,api}` |
+| The agent: observation, policy, training, evaluation, publication gate | `backend/flowstate/ml` |
+| Recorded side-by-side replays, ambulance green priority | `backend/flowstate/replay` |
+| Trained model and its held-out evaluation | `artifacts/ml` |
+| Dashboard and Results tab | `frontend/src` |
 
-| Stage | Code | Branch |
-|---|---|---|
-| Network, simulation engine, scenarios, API | `backend/flowstate/{network,sim,scenarios,api}` | `main` |
-| Dashboard and Results tab | `frontend/src` | `main` |
-| PPO training, SafeSignal, controllers, evaluation | `backend/flowstate/rl` | `task/rl-signal-control` |
-| Queue forecaster, forecast-assisted control, Intelligence Lab | `backend/flowstate/lab` | `task/ml-intelligence` |
-| Gemini explanation layer | `backend/flowstate/intelligence` | `task/ml-intelligence` |
-| Congested demo scenarios for the lab | `backend/flowstate/demo` | `task/demo-scenarios-v2` |
+## Results
 
-The Toronto network is the one deployed. The PPO policy and the Intelligence Lab are trained and evaluated on a 2x2 signalised grid,
-and wiring them into the deployed Toronto controller is the next integration step. The adaptive heuristic is the established
-controller in the live app today.
+Fixed-time signals against the agent on identical traffic, on the King West network: 80 held-out seeds across six scenarios
+(480 paired runs). One scenario, the stadium event, was never used for training or selection.
 
-## Controller results
-
-Fixed-time signals against the adaptive controller on identical traffic, on the 2x2 grid: held-out seeds, five demand patterns,
-50 paired runs at each demand level.
-
-| | Fixed-time | Adaptive | Change |
+| | Fixed-time | ML agent | Change |
 |---|---:|---:|---:|
-| Mean wait per vehicle, standard peak | 83.6 s | 78.7 s | -5.8 % |
-| Mean travel time, standard peak | 181.6 s | 174.7 s | -3.8 % |
-| Peak queue, standard peak | 144 veh | 128 veh | -11.2 % |
-| Mean wait per vehicle, over-saturated | 134.3 s | 128.9 s | -4.0 % |
+| Mean wait per vehicle | 52.0 s | 38.3 s | -26.3 % |
+| Time lost per vehicle | 95.8 s | 81.4 s | -15.0 % |
+| Peak queue | 50 veh | 41 veh | -16.8 % |
+| Throughput | 1,345 veh/h | 1,444 veh/h | +7.4 % |
 
-The Results tab in the app has every run, the per-pattern breakdown with confidence intervals, and can rerun the comparison on fresh
-seeds. The PPO policy and the forecaster are evaluated the same way on their branches.
-
-![Recorded evaluation of adaptive vs fixed-time signals, paired by seed](docs/images/results.png)
+These are simulation results. Demand is a seeded model, not calibrated to Toronto traffic counts
+(`docs/TORONTO_DEMAND_STRATEGY.md`). The agent is published only while it passes a gate on those held-out runs: waiting must be
+clearly lower than fixed-time, and time lost, throughput, teleports and trips not served must not be worse, overall and in every
+scenario (`backend/flowstate/ml/evaluate.py`). The Results tab in the app shows every run and replays scenarios side by side.
 
 ## In the app
 

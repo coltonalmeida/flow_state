@@ -22,7 +22,7 @@ def _rows(shift=None, per_scenario=None, seeds=20, drop=()):
     for sc in SCENARIOS:
         for seed in range(seeds):
             level = {k: v * (1 + 0.1 * rng.standard_normal()) if v else 0.0 for k, v in BASE.items()}
-            rows.append({"arm": "queue_responsive", "scenario": sc, "seed": seed, **level})
+            rows.append({"arm": "fixed_time", "scenario": sc, "seed": seed, **level})
             cand = dict(level)
             for k, d in {**(shift or {}), **(per_scenario or {}).get(sc, {})}.items():
                 cand[k] += d

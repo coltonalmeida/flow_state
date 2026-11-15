@@ -9,7 +9,7 @@ import pytest
 import numpy as np
 
 from flowstate.ml import rl_env
-from flowstate.ml.policies import ForecastPolicy, LearnedPolicy, RandomTiming
+from flowstate.ml.policies import LearnedPolicy
 from flowstate.ml.topology import build_topology
 from flowstate.replay.priority import EmergencyPriority
 from helpers import make_engine, run_until
@@ -37,11 +37,6 @@ class PhaseMonitor:
                     self.runs.setdefault(tid, []).append((cur[0], info.phase_start - cur[1]))
                 self.seen_first.add(tid)
                 self.cur[tid] = (info.phase, info.phase_start)
-
-
-class StubForecaster:
-    def predict(self, X):
-        return X[:, 0] + 5, X[:, 0] + 5
 
 
 def _drive(scenario, params, policies, until=None, seed=7):
@@ -82,29 +77,24 @@ def _random_weights(seed=0, hidden=16):
     return w
 
 
-@pytest.mark.parametrize("arm", ["random", "heuristic", "forecast", "learned", "teacher"])
+@pytest.mark.parametrize("arm", ["learned", "teacher"])
 def test_safety_contract_holds_on_rush_hour(arm):
-    pol = {"random": lambda: RandomTiming(seed=11), "heuristic": lambda: ForecastPolicy(),
-           "forecast": lambda: ForecastPolicy(forecaster=StubForecaster()),
-           "learned": lambda: LearnedPolicy(_random_weights(), mode="sample", seed=3, record=True),  # arbitrary weights: the mask and actuator must hold
+    pol = {"learned": lambda: LearnedPolicy(_random_weights(), mode="sample", seed=3, record=True),  # arbitrary weights: the mask and actuator must hold
            "teacher": lambda: LearnedPolicy(mode="teacher", eps=0.2, seed=3, record=True)}[arm]()
     mon = _drive("rush_hour", {"duration": 5}, [pol], until=300.0)
     topo = pol.topo
     _check_contract(mon, topo)
     s = pol.act.summary()
     assert s["greensEnded"] + s["extensions"] > 0, f"{arm} policy did nothing: {s}"
-    if arm == "forecast":
-        assert pol.decisions > 0
-    if arm in ("learned", "teacher"):
-        tr = pol.trajectory()
-        assert tr["obs"].shape[1:] == (len(topo.tls_ids), rl_env.OBS_DIM) and np.isfinite(tr["obs"]).all()
-        assert tr["mask"][np.arange(len(tr["act"]))[:, None], np.arange(len(topo.tls_ids))[None, :], tr["act"]].all(), "an invalid action was chosen"
-        assert pol.act.summary()["refused"] == 0, "the mask let through an action the actuator refused"
+    tr = pol.trajectory()
+    assert tr["obs"].shape[1:] == (len(topo.tls_ids), rl_env.OBS_DIM) and np.isfinite(tr["obs"]).all()
+    assert tr["mask"][np.arange(len(tr["act"]))[:, None], np.arange(len(topo.tls_ids))[None, :], tr["act"]].all(), "an invalid action was chosen"
+    assert pol.act.summary()["refused"] == 0, "the mask let through an action the actuator refused"
 
 
-def test_forecast_policy_only_touches_retimable_greens_beside_emergency_priority():
+def test_agent_only_touches_retimable_greens_beside_emergency_priority():
     """With ambulance priority running first, every TraCI call the ML policy makes is on a re-timable green that priority has not re-timed."""
-    pol = ForecastPolicy()
+    pol = LearnedPolicy(mode="teacher", eps=0.3, seed=4)  # the agent's action space with arbitrary choices
     eng = make_engine("ambulance", 3100, {"duration": 5, "calls": 2}, label="ml_policy_ev")
     eng.start()
     prio = EmergencyPriority()
@@ -139,21 +129,10 @@ def test_emergency_priority_never_shortens_clearances():
     _check_contract(mon, topo, check_greens=False)  # emergency priority legitimately re-times greens
 
 
-def test_queue_responsive_never_shortens_clearances():
-    from flowstate.api.service import NETWORKS_DIR
-    from flowstate.replay.heuristic import QueueResponsive
-
-    topo = build_topology(NETWORKS_DIR / "district.net.xml")
-    pol = QueueResponsive()
-    mon = _drive("rush_hour", {"duration": 5}, [pol], until=300.0)
-    _check_contract(mon, topo, check_greens=False)  # its 10 s minimum green differs from the plan's per-type minimum
-    assert pol.gap_outs + pol.switches + pol.extensions > 0
-
-
 def test_actuator_leaves_transit_priority_phases_alone():
     eng = make_engine("transit", 5, {"duration": 10}, label="ml_tsp")
     eng.start()
-    pol = ForecastPolicy()
+    pol = LearnedPolicy(mode="teacher", eps=0.3, seed=4)
     eng.signals.policies.extend([pol])
     mgr = eng.signals
     checked = 0

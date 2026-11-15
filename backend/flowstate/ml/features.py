@@ -1,6 +1,6 @@
 """Per-approach traffic features, sampled every ``SAMPLE_S`` seconds from a running :class:`~flowstate.sim.engine.Engine`.
 
-The 19 columns are those of the Intelligence Lab's grid forecaster (``lab/sim.py:FEATURES``), redefined so they need no compass
+The 19 columns were first defined for the Intelligence Lab's grid model (``lab/sim.py:FEATURES``), redefined so they need no compass
 and no fixed approach count:
 
 ==================  ==========================================================================================

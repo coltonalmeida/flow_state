@@ -1,4 +1,4 @@
-"""Controller registry: status comes from the gate and the model files, and nothing unverified becomes the default."""
+"""Controller registry: two controllers, the agent's status comes from the gate and the model file, and nothing is substituted for it."""
 
 import hashlib
 import json
@@ -20,14 +20,19 @@ def _by_id(doc):
     return {c["id"]: c for c in doc["controllers"]}
 
 
-def test_missing_models_are_unavailable_and_fall_back(tmp_path):
+def test_there_are_exactly_two_controllers_and_the_agent_is_the_default(tmp_path):
     doc = registry.controllers(tmp_path)
     c = _by_id(doc)
-    assert doc["default_controller"] == "queue_responsive" and c["queue_responsive"]["status"] == "default" and c["fixed_time"]["status"] == "baseline"
-    assert c["rl_ppo"]["status"] == "unavailable" and c["ml_forecast"]["status"] == "unavailable"
-    r = registry.resolve("rl_ppo", tmp_path)
-    assert r["used"] == "queue_responsive" and r["fallback"]
-    assert registry.resolve(None, tmp_path)["used"] == "queue_responsive"
+    assert list(c) == ["fixed_time", "rl_ppo"] and doc["default_controller"] == "rl_ppo"
+    assert c["fixed_time"]["status"] == "baseline"
+
+
+def test_a_missing_model_is_an_error_not_a_substitution(tmp_path):
+    assert _by_id(registry.controllers(tmp_path))["rl_ppo"]["status"] == "unavailable"
+    for asked in ("rl_ppo", None):
+        with pytest.raises(registry.ControllerUnavailable, match="no trained model"):
+            registry.resolve(asked, tmp_path)
+    assert registry.resolve("fixed_time", tmp_path)["used"] == "fixed_time"
     with pytest.raises(ValueError):
         registry.resolve("nope", tmp_path)
 
@@ -37,42 +42,31 @@ def test_status_follows_the_gate_and_the_manifest_hash(tmp_path):
     assert _by_id(registry.controllers(tmp_path))["rl_ppo"]["status"] == "experimental"  # a model without a gate result is never verified
     (tmp_path / "evaluation.json").write_text(json.dumps({"gate": {"rl_ppo": {"status": "experimental", "failed": ["no_teleport_regression"]}}, "meta": {}}))
     c = _by_id(registry.controllers(tmp_path))["rl_ppo"]
-    assert c["status"] == "experimental" and "no_teleport_regression" in c["note"] and registry.resolve("rl_ppo", tmp_path)["used"] == "rl_ppo"
+    assert c["status"] == "experimental" and "no_teleport_regression" in c["note"]
+    assert registry.resolve(None, tmp_path) == {"requested": None, "used": "rl_ppo", "status": "experimental"}
     (tmp_path / "evaluation.json").write_text(json.dumps({"gate": {"rl_ppo": {"status": "verified", "failed": []}}, "meta": {}}))
     assert _by_id(registry.controllers(tmp_path))["rl_ppo"]["status"] == "verified"
-    assert registry.controllers(tmp_path)["default_controller"] == "queue_responsive"
-
-
-def test_the_results_page_features_the_learned_policy_only_while_it_is_verified(tmp_path):
-    assert registry.controllers(tmp_path)["featured_controller"] == "queue_responsive"  # no model
-    _write_rl(tmp_path)
-    assert registry.controllers(tmp_path)["featured_controller"] == "queue_responsive"  # a model without a gate result
-    (tmp_path / "evaluation.json").write_text(json.dumps({"gate": {"rl_ppo": {"status": "experimental", "failed": ["wait_ci_below_zero"]}}, "meta": {}}))
-    assert registry.controllers(tmp_path)["featured_controller"] == "queue_responsive"
-    (tmp_path / "evaluation.json").write_text(json.dumps({"gate": {"rl_ppo": {"status": "verified", "failed": []}}, "meta": {}}))
-    doc = registry.controllers(tmp_path)
-    assert doc["featured_controller"] == "rl_ppo" and doc["default_controller"] == "queue_responsive" and registry.resolve(None, tmp_path)["used"] == "queue_responsive"
-    (tmp_path / "rl" / "policy.npz").write_bytes(b"changed")  # the verified file was replaced: no longer featured
-    assert registry.controllers(tmp_path)["featured_controller"] == "queue_responsive"
+    assert registry.resolve("rl_ppo", tmp_path)["status"] == "verified"
 
 
 def test_tampered_model_is_unavailable(tmp_path):
     _write_rl(tmp_path, sha_ok=False)
     c = _by_id(registry.controllers(tmp_path))["rl_ppo"]
     assert c["status"] == "unavailable" and not c["available"]
+    with pytest.raises(registry.ControllerUnavailable, match="does not match its manifest"):
+        registry.resolve("rl_ppo", tmp_path)
 
 
 def test_api_lists_controllers():
     from flowstate.api.app import app
 
     doc = TestClient(app).get("/api/controllers").json()
-    assert doc["default_controller"] == "queue_responsive"
-    assert {"fixed_time", "queue_responsive", "ml_forecast", "rl_ppo"} <= set(_by_id(doc))
+    assert doc["default_controller"] == "rl_ppo" and set(_by_id(doc)) == {"fixed_time", "rl_ppo"}
     assert all(c["status"] != "verified" or c["gate"]["status"] == "verified" for c in doc["controllers"] if c["kind"] == "ml")
 
 
-def test_committed_models_are_recognised():
-    """The repository's own model files must match their manifests (both manifest formats), or the UI silently falls back."""
-    c = _by_id(registry.controllers())
-    for cid in ("ml_forecast", "rl_ppo"):
-        assert c[cid]["note"] != "model file does not match its manifest", cid
+def test_the_committed_agent_is_recognised_and_verified_against_fixed_time():
+    """The repository's own model file must match its manifest, and its stored gate result must be the one against fixed-time."""
+    c = _by_id(registry.controllers())["rl_ppo"]
+    assert c["available"], c["note"]
+    assert c["status"] == "verified" and c["gate"]["baseline"] == "fixed_time" and not c["gate"]["failed"]

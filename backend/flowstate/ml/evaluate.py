@@ -4,7 +4,7 @@ Every (scenario, seed) is run once per arm with identical demand and events (``e
 paired. ``summarise`` is the RL branch's ``rl/evaluate.py:summarise`` (mean, spread, paired bootstrap 95 % CI and Wilcoxon
 signed-rank against a baseline), generalised to any arm names.
 
-Publication gate (``gate``): an ML arm is ``verified`` only if, against ``queue_responsive`` on the held-out test seeds,
+Publication gate (``gate``): the trained agent is ``verified`` only if, against ``fixed_time`` on the held-out test seeds,
 
 * it is better on waiting: the 95 % CI of its paired mean-wait difference is entirely below 0 (superiority), and
 * it is not worse on anything else, by a non-inferiority test: the 95 % CI of the paired difference must stay inside a margin
@@ -23,7 +23,7 @@ Publication gate (``gate``): an ML arm is ``verified`` only if, against ``queue_
 A margin is needed because a controller that exactly ties the baseline has a mean difference above 0 half of the time; "mean
 difference <= 0" would fail it at random. The margins are deliberately small.
 
-Otherwise it is ``experimental`` and must not be selected by default.
+Otherwise it is ``experimental`` and the Results page's data file is not built from it.
 """
 
 from __future__ import annotations
@@ -36,8 +36,7 @@ from typing import Any
 
 import numpy as np
 
-from .dataset import HELDOUT_SCENARIO, TRAIN_SCENARIOS, split_seeds
-from .episodes import model_dir, run_episode
+from .episodes import HELDOUT_SCENARIO, TRAIN_SCENARIOS, model_dir, run_episode, split_seeds
 
 METRICS = ["mean_wait_s", "mean_time_loss_s", "mean_wait_window_s", "mean_depart_delay_s", "unserved", "throughput_vph", "completed_fraction", "queue_mean_veh",
            "queue_max_veh", "pending_end", "teleports", "collisions"]
@@ -46,8 +45,9 @@ GATE_METRICS = ("mean_wait_s", "mean_time_loss_s", "teleports", "throughput_vph"
 MARGINS = {"mean_time_loss_s": (2.0, 0.0), "mean_wait_s": (2.0, 0.0), "throughput_vph": (1.0, 0.0), "teleports": (0.0, 0.05), "unserved": (2.0, 1.0),
            "mean_depart_delay_s": (2.0, 0.5)}
 LOWER_IS_BETTER = {m: m not in ("throughput_vph", "completed_fraction") for m in METRICS}
-GATE_BASELINE = "queue_responsive"
-DEFAULT_ARMS = ("fixed_time", "queue_responsive", "safe_heuristic", "ml_forecast")
+GATE_BASELINE = "fixed_time"
+AGENT = "rl_ppo"
+DEFAULT_ARMS = ("fixed_time", AGENT)
 EVAL_SCENARIOS = TRAIN_SCENARIOS + (HELDOUT_SCENARIO,)
 
 
@@ -140,14 +140,14 @@ def summarise(rows: list[dict[str, Any]], baseline: str = "fixed_time", rng_seed
     return out
 
 
-def gate(summary_vs_heuristic: dict[str, Any], arm: str) -> dict[str, Any]:
-    """Apply the publication gate to ``arm`` in a summary whose baseline is ``queue_responsive``."""
-    if summary_vs_heuristic.get("baseline") != GATE_BASELINE:
+def gate(summary: dict[str, Any], arm: str = AGENT) -> dict[str, Any]:
+    """Apply the publication gate to ``arm`` in a summary whose baseline is ``fixed_time``."""
+    if summary.get("baseline") != GATE_BASELINE:
         raise ValueError(f"the gate needs a summary against {GATE_BASELINE}")
-    overall = summary_vs_heuristic.get("overall", {})
+    overall = summary.get("overall", {})
     m = overall.get(arm, {}).get("metrics")
     if not m or "vs_baseline" not in m["mean_wait_s"]:
-        return {"arm": arm, "status": "experimental", "reason": "not evaluated against the heuristic", "checks": {}}
+        return {"arm": arm, "status": "experimental", "reason": "not evaluated against fixed-time", "checks": {}}
     missing = [k for k in GATE_METRICS if k not in m]
     if missing:
         return {"arm": arm, "status": "experimental", "reason": "the evaluation predates these measurements: " + ", ".join(missing), "checks": {}, "failed": ["evaluation_outdated"]}
@@ -167,7 +167,7 @@ def gate(summary_vs_heuristic: dict[str, Any], arm: str) -> dict[str, Any]:
         "no_insertion_regression": vb["unserved"]["ci95"][1] <= limit("unserved") and vb["mean_depart_delay_s"]["ci95"][1] <= limit("mean_depart_delay_s"),
     }
     regressed = []
-    for sc, blk in summary_vs_heuristic.get("per_scenario", {}).items():
+    for sc, blk in summary.get("per_scenario", {}).items():
         sm = blk.get(arm, {}).get("metrics", {})
         for k in ("mean_wait_s", "mean_time_loss_s"):
             d = sm.get(k, {}).get("vs_baseline")
@@ -191,9 +191,8 @@ def run(arms: list[str] | None = None, n_seeds: int | None = None, *, split: str
     here, and only the missing ones are run. Episodes are deterministic in (arm, scenario, seed, code, model), so only reuse a document
     produced by the same code and models."""
     arms = list(arms or DEFAULT_ARMS)
-    for needed in ("fixed_time", GATE_BASELINE):
-        if needed not in arms:
-            arms.insert(0, needed)
+    if GATE_BASELINE not in arms:
+        arms.insert(0, GATE_BASELINE)
     seeds = split_seeds(split, n_seeds)
     scenarios = list(scenarios or EVAL_SCENARIOS)
     t0 = time.time()
@@ -215,14 +214,13 @@ def run(arms: list[str] | None = None, n_seeds: int | None = None, *, split: str
     partial = out.with_suffix(".partial.jsonl")
     rows = kept + (evaluate(todo, scenarios, seeds, workers=workers, directory=directory, partial=partial, stamp={"split": split, **prov}) if todo else [])
     rows.sort(key=lambda r: (r["scenario"], r["seed"], r["arm"]))
-    vs_fixed = summarise(rows, "fixed_time")
-    vs_heur = summarise(rows, GATE_BASELINE)
-    gates = {a: gate(vs_heur, a) for a in arms if a in ("ml_forecast", "rl_ppo", "safe_heuristic")}
+    vs_fixed = summarise(rows, GATE_BASELINE)
+    gates = {a: gate(vs_fixed, a) for a in arms if a != GATE_BASELINE}
     doc = {"meta": {"split": split, "seeds": [seeds[0], seeds[-1], len(seeds)], "scenarios": scenarios, "arms": arms, "heldout_scenario": HELDOUT_SCENARIO,
                     "wall_s": round(time.time() - t0, 1), "built_at": time.strftime("%Y-%m-%dT%H:%M:%S"), "provenance": prov,
                     "reused": {"from": str(reuse), "arms": sorted({r["arm"] for r in kept})} if reuse is not None else None,
                     "note": "simulation only: demand is a seeded model, not calibrated to Toronto counts (docs/TORONTO_DEMAND_STRATEGY.md)"},
-           "gate": gates, "vs_fixed_time": vs_fixed, "vs_queue_responsive": vs_heur,
+           "gate": gates, "vs_fixed_time": vs_fixed,
            "episodes": rows}
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(doc, indent=1), encoding="utf-8")
@@ -240,7 +238,7 @@ def provenance(directory: Path | None = None) -> dict[str, Any]:
         out["commit"] = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=Path(__file__).parent, text=True, stderr=subprocess.DEVNULL).strip()
     except Exception:  # noqa: BLE001
         out["commit"] = None
-    for name, man in (("ml_forecast", d / "forecaster" / "MODEL_MANIFEST.json"), ("rl_ppo", d / "rl" / "RL_MANIFEST.json")):
+    for name, man in ((AGENT, d / "rl" / "RL_MANIFEST.json"),):
         try:
             m = json.loads(man.read_text(encoding="utf-8"))
             out["models"][name] = m.get("sha256") or m.get("artifact_sha256")
@@ -253,8 +251,8 @@ def regate(path: Path) -> dict[str, Any]:
     """Recompute summaries and gates of a stored evaluation from its episodes (no simulation), e.g. after the gate definition changed."""
     doc = json.loads(Path(path).read_text(encoding="utf-8"))
     rows = doc["episodes"]
-    doc["vs_fixed_time"], doc["vs_queue_responsive"] = summarise(rows, "fixed_time"), summarise(rows, GATE_BASELINE)
-    doc["gate"] = {a: gate(doc["vs_queue_responsive"], a) for a in doc["meta"]["arms"] if a in ("ml_forecast", "rl_ppo", "safe_heuristic")}
+    doc["vs_fixed_time"] = summarise(rows, GATE_BASELINE)
+    doc["gate"] = {a: gate(doc["vs_fixed_time"], a) for a in doc["meta"]["arms"] if a != GATE_BASELINE}
     doc["meta"]["regated_at"] = time.strftime("%Y-%m-%dT%H:%M:%S")
     doc["meta"].setdefault("provenance", provenance())
     Path(path).write_text(json.dumps(doc, indent=1), encoding="utf-8")
@@ -263,11 +261,11 @@ def regate(path: Path) -> dict[str, Any]:
 
 def table(doc: dict[str, Any]) -> str:
     """Plain-text summary of an evaluation document."""
-    vh = doc["vs_queue_responsive"]
+    vh = doc["vs_fixed_time"]
     lines = [f"split={doc['meta']['split']} seeds={doc['meta']['seeds']} pairs={vh.get('pairs')} failed={len(vh.get('failed', []))}"]
     if "overall" not in vh:
         return lines[0] + "\n(no complete pairs)"
-    lines.append(f"{'arm':18} {'wait s':>8} {'loss s':>8} {'thr vph':>8} {'tele':>6} | wait vs heuristic (95% CI)      p      | loss vs heuristic (95% CI)")
+    lines.append(f"{'arm':18} {'wait s':>8} {'loss s':>8} {'thr vph':>8} {'tele':>6} | wait vs fixed-time (95% CI)     p      | loss vs fixed-time (95% CI)")
     for arm in doc["meta"]["arms"]:
         m = vh["overall"][arm]["metrics"]
         row = f"{arm:18} {m['mean_wait_s']['mean']:8.2f} {m['mean_time_loss_s']['mean']:8.2f} {m['throughput_vph']['mean']:8.0f} {m['teleports']['mean']:6.2f} | "

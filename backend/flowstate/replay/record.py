@@ -1,12 +1,11 @@
 """Record paired replays on the real ``district`` network for several of main's scenarios, plus a small paired evaluation for each.
 
-    python -m flowstate.replay.record --scenarios ambulance,rush_hour,accident,construction --seeds 3100-3107 --controller rl_ppo --out ../frontend/public/flowstate-demo
+    python -m flowstate.replay.record --scenarios ambulance,rush_hour,accident,construction --seeds 3100-3107 --out ../frontend/public/flowstate-demo
 
 Arms (same seed, same demand, same events):
 * ``left``  = ``fixed`` signals (main's pre-timed plans) with no extra rules;
-* ``right`` = ``--controller`` (default ``queue_responsive``: FlowState's rules, queue-responsive green durations (``heuristic.py``) + ambulance green priority
-  (``priority.py``)). ML arms (``ml_forecast``, ``rl_ppo``) and ``safe_heuristic`` come from ``flowstate.ml.episodes.make_policies``; ML arms are experimental
-  unless the publication gate says otherwise, and the asset records ``rightStatus``.
+* ``right`` = the trained agent (``rl_ppo``: ``flowstate.ml.policies.LearnedPolicy``) with ambulance green priority (``priority.py``) beside it.
+  The asset records the agent's publication status (``rightStatus``).
 """
 
 from __future__ import annotations
@@ -35,10 +34,7 @@ SCENARIOS: dict[str, dict[str, Any]] = {
 }
 
 
-ARM_IDS = ("fixed_time", "queue_responsive", "safe_heuristic", "ml_forecast", "rl_ppo")
-ARM_ALIASES = {"flowstate": "queue_responsive", "flowstate_rules": "queue_responsive"}
-# The id written into assets: the rules arm keeps its historical name so existing assets and consumers still work.
-ASSET_CONTROLLER = {"queue_responsive": "flowstate_rules"}
+ARM_IDS = ("fixed_time", "rl_ppo")
 
 
 def run(seed: int, arm: str, scenario_id: str = "ambulance", frames: bool = True) -> dict[str, Any]:
@@ -47,7 +43,7 @@ def run(seed: int, arm: str, scenario_id: str = "ambulance", frames: bool = True
     from ..sim.engine import Engine, RunConfig
     from ..sim.vtypes import base_type
 
-    cid = ARM_ALIASES.get(arm, arm)
+    cid = arm
     if cid not in ARM_IDS:
         raise ValueError(f"unknown controller '{arm}' (known: {', '.join(ARM_IDS)})")
     spec = SCENARIOS.get(scenario_id, {})
@@ -138,7 +134,7 @@ def run(seed: int, arm: str, scenario_id: str = "ambulance", frames: bool = True
         "teleports": res["teleports"], "collisions": res["collisions"], "car": cars, "junctionMaxQueue": res["metrics"].get("junctionMaxQueue", {}),
         "rules": [r.summary() for r in rules] or None, "scenario": res.get("scenario"),
     }
-    return {"seed": seed, "arm": arm, "scenario": scenario_id, "network": eng.network_id, "controller": ASSET_CONTROLLER.get(cid, cid), "tlsIds": tls_ids,
+    return {"seed": seed, "arm": arm, "scenario": scenario_id, "network": eng.network_id, "controller": cid, "tlsIds": tls_ids,
             "frames": out_frames, "units": list(units.values()), "metrics": metrics, "focus": focus}
 
 
@@ -228,12 +224,12 @@ def asset(scenario_id: str, pair: dict[str, Any], agg: dict[str, Any], seeds: li
         return {k: m.get(k) for k in ("ev_total", "ev_unfinished", "ev_travel_mean_s", "ev_stopped_red_s", "ev_stopped_queue_s", "queue_total_mean_veh", "throughput_vph", "teleports", "collisions")} | {"car": m.get("car"), "rules": m.get("rules")}
 
     spec = _spec(scenario_id)
-    right = right or {"used": "queue_responsive", "status": "default", "fallback": None}
+    right = right or {"used": "rl_ppo", "status": "experimental"}  # no status given: claim nothing
     return {"schema": "flowstate.results-demo/4", "builtAt": time.strftime("%Y-%m-%dT%H:%M:%S"), "network": L.get("network", "district"), "codes": "main", "tlsIds": L["tlsIds"], "dt": FRAME_DT,
             "pair": f"district__{scenario_id}__{pair['seed']}", "scenario": scenario_id, "scenarioTitle": spec["title"], "tagline": spec["tagline"], "seed": pair["seed"],
             "bestCaseStopS": BEST_CASE_STOP_S, "minQueueS": MIN_QUEUE_S, "focus": L["focus"], "kpis": [{"key": k, "label": lbl, "unit": u} for k, lbl, u in KPIS.get(scenario_id, KPIS["default"])],
-            "left": {"controller": "fixed_time", "frames": L["frames"]}, "right": {"controller": R.get("controller", "flowstate_rules"), "frames": R["frames"]},
-            "rightController": right["used"], "rightStatus": right["status"], "fallback": right.get("fallback"),
+            "left": {"controller": "fixed_time", "frames": L["frames"]}, "right": {"controller": R.get("controller", right["used"]), "frames": R["frames"]},
+            "rightController": right["used"], "rightStatus": right["status"],
             "units": units, "example": example, "totals": {"left": totals(L), "right": totals(R)},
             "aggregate": {"episodes": len(seeds), "seeds": seeds, "metrics": agg},
             "rightIncludes": right_includes(right["used"], right["status"])}
@@ -241,16 +237,13 @@ def asset(scenario_id: str, pair: dict[str, Any], agg: dict[str, Any], seeds: li
 
 def right_includes(controller: str, status: str) -> str:
     """What the right-hand arm is, stated truthfully for the page."""
-    if controller == "queue_responsive":
-        return "the same fixed plans with FlowState's rules: queue-responsive green durations and ambulance green priority (hand-written; no learned model is used)"
-    if controller == "safe_heuristic":
-        return "the queue rule evaluated per approach under the ML safety contract, plus ambulance green priority (hand-written; no trained model)"
-    if controller in ("ml_forecast", "rl_ppo"):
-        what = "the queue rule with a trained 30 s queue forecast" if controller == "ml_forecast" else "a trained reinforcement-learning policy that picks hold / end / extend for every signal"
-        tail = ", plus ambulance green priority"
-        if status == "experimental":
-            return f"{what}{tail}: a trained model that did not pass the held-out publication gate against the FlowState rules (experimental, shown for reference)"
-        return f"{what}{tail} (trained model)"
+    if controller == "rl_ppo":
+        what = "the same plans with a trained reinforcement-learning agent that picks hold / end / extend for every signal every 5 s, plus ambulance green priority"
+        if status != "verified":
+            return f"{what} (this model has not passed the held-out publication gate against fixed-time)"
+        return what
+    if controller == "fixed_time":
+        return "the same fixed-time plans"
     return controller
 
 
@@ -265,10 +258,9 @@ def _spec(scenario_id: str) -> dict[str, Any]:
 
 
 def compare_one(scenario_id: str, seed: int, controller: str | None = None) -> dict[str, Any]:
-    """Run fixed-time and one other controller for one seed in parallel processes (libsumo allows one simulation per process) and build a page asset.
+    """Run fixed-time and the trained agent for one seed in parallel processes (libsumo allows one simulation per process) and build a page asset.
 
-    The right-hand arm is ``registry.resolve(controller)["used"]``: an unavailable controller falls back to the FlowState rules and the asset says so.
-    Unknown ids raise ``ValueError``. Used by ``POST /api/replay``."""
+    Unknown ids raise ``ValueError``; an agent whose model cannot be used raises ``registry.ControllerUnavailable``. Used by ``POST /api/replay``."""
     from ..ml.registry import resolve
 
     res = resolve(controller)
@@ -285,7 +277,7 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--scenarios", default=",".join(SCENARIOS))
     ap.add_argument("--seeds", default="3100-3107")
     ap.add_argument("--show", type=int, default=None, help="seed recorded with frames for display (default: first seed)")
-    ap.add_argument("--controller", default="queue_responsive", help="right-hand arm: queue_responsive (default), safe_heuristic, ml_forecast or rl_ppo")
+    ap.add_argument("--controller", default="rl_ppo", help="right-hand arm (default and normally the only choice: rl_ppo, the trained agent)")
     ap.add_argument("--out", required=True)
     ap.add_argument("--workers", type=int, default=3)
     ap.add_argument("--eval-out", default=None)
@@ -297,8 +289,6 @@ def main(argv: list[str] | None = None) -> None:
     from ..ml.registry import resolve
 
     right = resolve(a.controller)
-    if right["fallback"]:
-        print(json.dumps({"warning": f"{a.controller} unavailable ({right['fallback']}); using {right['used']}"}))
     t0 = time.time()
     jobs = [(sc, s, s == show, right["used"]) for sc in scenarios for s in seeds]
     with ProcessPoolExecutor(a.workers, mp_context=mp.get_context("spawn")) as pool:
@@ -310,7 +300,7 @@ def main(argv: list[str] | None = None) -> None:
 
     (out / "district-network.json").write_text(json.dumps(network_geometry(str(NETWORKS_DIR / "district.net.xml"), "district"), separators=(",", ":")))
     index = {"network": "district", "builtAt": time.strftime("%Y-%m-%dT%H:%M:%S"), "seeds": seeds, "controller": right["used"], "status": right["status"], "scenarios": []}
-    ev_all: dict[str, Any] = {"builtAt": index["builtAt"], "seeds": seeds, "arms": {"left": "fixed_time", "right": ASSET_CONTROLLER.get(right["used"], right["used"])}, "scenarios": {}}
+    ev_all: dict[str, Any] = {"builtAt": index["builtAt"], "seeds": seeds, "arms": {"left": "fixed_time", "right": right["used"]}, "scenarios": {}}
     for sc in scenarios:
         pairs = [r for (sid, _s, _f, _c), r in zip(jobs, results) if sid == sc]
         car_keys = [k for k, v in pairs[0]["left"]["metrics"]["car"].items() if isinstance(v, (int, float))]

@@ -38,7 +38,7 @@ N_ACTIONS = 3
 GROUP_DIM = 10
 OBS_DIM = 2 * GROUP_DIM + 6
 OBS_VERSION = 1
-SWITCH_RATIO, SWITCH_MARGIN = 1.5, 3.0  # the queue rule's thresholds (replay/heuristic.py), used by the teacher
+SWITCH_RATIO, SWITCH_MARGIN = 1.5, 3.0  # the teacher ends a green when the red side queues more than ratio x green + margin
 
 
 def _group(rows: np.ndarray) -> list[float]:

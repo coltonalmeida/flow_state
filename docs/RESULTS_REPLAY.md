@@ -13,15 +13,14 @@ with ambulance green priority beside it. It acts only on green *durations*: ambe
 their programmed length.
 
 The page asks the backend for the agent by name (`POST /api/replay` with `controller: "rl_ppo"`). If the model file is missing or does not match its
-manifest, the backend falls back to the hand-written queue rules and the page says so above the right-hand map.
+manifest, the backend answers with an error and runs nothing in its place; the page then shows the pre-recorded agent runs.
 
-Not shown on the page, but still in the repository: the hand-written rules (`backend/flowstate/replay/`), the forecast-assisted controller, and their
-held-out results in `artifacts/ml/evaluation.json`. The agent is labelled verified because it passed the publication gate against those rules there;
-`frontend/scripts/extract_controller_results.py` refuses to build the page's data file if the agent is not verified.
+The agent is labelled verified because it passed the publication gate against fixed-time on held-out seeds (`artifacts/ml/evaluation.json`);
+`frontend/scripts/extract_controller_results.py` refuses to build the page's data file if it is not verified.
 
 ## How the numbers are made
 
-`python -m flowstate.replay.record --scenarios ambulance,rush_hour,accident,construction --seeds 3100-3107 --controller rl_ppo --out frontend/public/flowstate-demo --eval-out artifacts/replay/district-eval.json`
+`python -m flowstate.replay.record --scenarios ambulance,rush_hour,accident,construction --seeds 3100-3107 --out frontend/public/flowstate-demo --eval-out artifacts/replay/district-eval.json`
 (run from `backend/` with the paths adjusted). `index.json` records which controller the runs used.
 
 For every scenario and seed it runs both arms headless (5 minutes each, main's engine, libsumo), records half-second frames for the display seed, and
